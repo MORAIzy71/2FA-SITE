@@ -12,8 +12,21 @@ export const metadata: Metadata = {
   description: 'Gerador de códigos TOTP para autenticação em dois fatores',
   generator: 'v0.app',
   icons: {
-    icon: '/icon.png',
-    apple: '/icon.png',
+    icon: [
+      {
+        url: '/icon-light-32x32.png',
+        media: '(prefers-color-scheme: light)',
+      },
+      {
+        url: '/icon-dark-32x32.png',
+        media: '(prefers-color-scheme: dark)',
+      },
+      {
+        url: '/icon.svg',
+        type: 'image/svg+xml',
+      },
+    ],
+    apple: '/apple-icon.png',
   },
 }
 
