@@ -1,22 +1,23 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect } from "react"
 import { TOTP } from "otpauth"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
 import { InvalidCodeDialog } from "@/components/invalid-code-dialog"
 import { 
   Copy, 
   Check, 
   Shield, 
-  Globe, 
   Download, 
   Key as KeyIcon,
   Trash2,
   Lock,
   HelpCircle,
-  Code2
+  SplitSquareVertical,
+  Users
 } from "lucide-react"
 
 function generateCode(secret: string): string {
@@ -41,8 +42,11 @@ interface RecentCode {
   timestamp: Date
 }
 
-interface RecentIP {
-  ip: string
+interface SeparatedAccount {
+  type: "rockstar" | "discord"
+  original: string
+  email: string
+  password: string
   timestamp: Date
 }
 
@@ -52,6 +56,7 @@ export function TOTPGenerator() {
   const [recentCodes, setRecentCodes] = useState<RecentCode[]>([])
   const [copiedCode, setCopiedCode] = useState<string | null>(null)
   const [showHelpDialog, setShowHelpDialog] = useState(false)
+  const [separatedAccounts, setSeparatedAccounts] = useState<SeparatedAccount[]>([])
 
   const triggerConfetti = () => {
     const runConfetti = () => {
@@ -64,7 +69,6 @@ export function TOTPGenerator() {
         gravity?: number
         scalar?: number
         ticks?: number
-        angle?: number
       }) => void }).confetti
 
       confettiFunc({
@@ -112,8 +116,8 @@ export function TOTPGenerator() {
     await navigator.clipboard.writeText(code)
     setCopiedCode(code)
     triggerConfetti()
-    toast.success("Codigo copiado!", {
-      description: "O codigo foi copiado para a area de transferencia.",
+    toast.success("Copiado!", {
+      description: "Copiado para a area de transferencia.",
     })
     setTimeout(() => setCopiedCode(null), 2000)
   }
@@ -123,13 +127,29 @@ export function TOTPGenerator() {
     toast.success("Codigo removido!")
   }
 
+  const deleteSeparatedAccount = (index: number) => {
+    setSeparatedAccounts(prev => prev.filter((_, i) => i !== index))
+    toast.success("Conta removida!")
+  }
+
   const formatDate = (date: Date) => {
     return `${date.toLocaleDateString('pt-BR')} as ${date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`
   }
 
+  const getSubtitle = () => {
+    switch(activeTab) {
+      case "2fa":
+        return "Gere codigos de autenticacao 2FA"
+      case "separador":
+        return "Separe contas Rockstar e Discord"
+      case "baixarvideos":
+        return "Baixe videos do TikTok e YouTube"
+    }
+  }
+
   const tabs = [
     { id: "2fa" as TabType, label: "2FA", icon: Shield },
-    { id: "separador" as TabType, label: "Separador", icon: Code2 },
+    { id: "separador" as TabType, label: "Separador", icon: SplitSquareVertical },
     { id: "baixarvideos" as TabType, label: "Baixar Videos", icon: Download },
   ]
 
@@ -170,7 +190,7 @@ export function TOTPGenerator() {
         {/* Subtitle Badge */}
         <div className="mb-12 inline-flex items-center gap-2 rounded-full border border-border/50 bg-card/40 px-5 py-2 text-sm text-muted-foreground backdrop-blur-md">
           <Shield className="h-4 w-4 text-primary" />
-          Gere codigos de autenticacao 2FA
+          {getSubtitle()}
         </div>
 
         {/* Main Content */}
@@ -189,7 +209,15 @@ export function TOTPGenerator() {
         )}
 
         {activeTab === "separador" && (
-          <SeparadorTab triggerConfetti={triggerConfetti} />
+          <SeparadorTab 
+            triggerConfetti={triggerConfetti} 
+            copyCode={copyCode}
+            copiedCode={copiedCode}
+            separatedAccounts={separatedAccounts}
+            setSeparatedAccounts={setSeparatedAccounts}
+            deleteSeparatedAccount={deleteSeparatedAccount}
+            formatDate={formatDate}
+          />
         )}
 
         {activeTab === "baixarvideos" && (
@@ -323,153 +351,223 @@ function TwoFATab({
   )
 }
 
-// Separador Tab Component (Meu IP com IPs Recentes)
-function SeparadorTab({ triggerConfetti }: { triggerConfetti: () => void }) {
-  const [ip, setIp] = useState<string>("")
-  const [loading, setLoading] = useState(true)
-  const [copied, setCopied] = useState(false)
-  const [recentIPs, setRecentIPs] = useState<RecentIP[]>([])
-  const [copiedIP, setCopiedIP] = useState<string | null>(null)
+// Separador Tab Component - Para separar contas Rockstar e Discord
+interface SeparadorTabProps {
+  triggerConfetti: () => void
+  copyCode: (code: string) => Promise<void>
+  copiedCode: string | null
+  separatedAccounts: SeparatedAccount[]
+  setSeparatedAccounts: React.Dispatch<React.SetStateAction<SeparatedAccount[]>>
+  deleteSeparatedAccount: (index: number) => void
+  formatDate: (date: Date) => string
+}
 
-  useEffect(() => {
-    fetchIP()
-  }, [])
+function SeparadorTab({ 
+  triggerConfetti, 
+  copyCode,
+  copiedCode,
+  separatedAccounts,
+  setSeparatedAccounts,
+  deleteSeparatedAccount,
+  formatDate
+}: SeparadorTabProps) {
+  const [accountType, setAccountType] = useState<"rockstar" | "discord">("rockstar")
+  const [inputText, setInputText] = useState("")
 
-  const fetchIP = () => {
-    setLoading(true)
-    fetch("https://api.ipify.org?format=json")
-      .then(res => res.json())
-      .then(data => {
-        setIp(data.ip)
-        setLoading(false)
-        
-        // Add to recent IPs if not already there
-        setRecentIPs(prev => {
-          const exists = prev.some(item => item.ip === data.ip)
-          if (!exists) {
-            return [{ ip: data.ip, timestamp: new Date() }, ...prev.slice(0, 9)]
-          }
-          return prev
-        })
-      })
-      .catch(() => {
-        setIp("Erro ao obter IP")
-        setLoading(false)
-      })
-  }
-
-  const copyIP = async (ipToCopy?: string) => {
-    const targetIP = ipToCopy || ip
-    if (!targetIP || targetIP === "Erro ao obter IP") return
-    await navigator.clipboard.writeText(targetIP)
-    if (ipToCopy) {
-      setCopiedIP(ipToCopy)
-      setTimeout(() => setCopiedIP(null), 2000)
-    } else {
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
+  const separateAccount = () => {
+    if (!inputText.trim()) {
+      toast.error("Cole o texto da conta!")
+      return
     }
+
+    // Tenta extrair email e senha do texto
+    // Formatos comuns: "email:senha", "email|senha", "email senha"
+    const text = inputText.trim()
+    let email = ""
+    let password = ""
+
+    // Tenta diferentes separadores
+    const separators = [":", "|", " ", "\t", "\n"]
+    for (const sep of separators) {
+      if (text.includes(sep)) {
+        const parts = text.split(sep).filter(p => p.trim())
+        if (parts.length >= 2) {
+          // Procura por algo que parece email
+          const emailPart = parts.find(p => p.includes("@"))
+          if (emailPart) {
+            email = emailPart.trim()
+            password = parts.find(p => p !== emailPart)?.trim() || parts[1].trim()
+          } else {
+            email = parts[0].trim()
+            password = parts[1].trim()
+          }
+          break
+        }
+      }
+    }
+
+    if (!email || !password) {
+      // Se nao conseguiu separar, usa o texto inteiro como "original"
+      toast.error("Formato nao reconhecido. Use email:senha ou email|senha")
+      return
+    }
+
+    const newAccount: SeparatedAccount = {
+      type: accountType,
+      original: text,
+      email,
+      password,
+      timestamp: new Date()
+    }
+
+    setSeparatedAccounts(prev => [newAccount, ...prev.slice(0, 19)])
+    setInputText("")
     triggerConfetti()
-    toast.success("IP copiado!")
-  }
-
-  const deleteIP = (index: number) => {
-    setRecentIPs(prev => prev.filter((_, i) => i !== index))
-    toast.success("IP removido!")
-  }
-
-  const formatDate = (date: Date) => {
-    return `${date.toLocaleDateString('pt-BR')} as ${date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`
+    toast.success("Conta separada com sucesso!")
   }
 
   return (
     <div className="w-full max-w-lg">
-      {/* Current IP Card */}
+      {/* Separador Card */}
       <div className="rounded-2xl border border-border/50 bg-card/60 p-6 backdrop-blur-md">
         <div className="mb-4 flex items-start gap-4">
           <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary/15 ring-1 ring-primary/30">
-            <Globe className="h-6 w-6 text-primary" />
+            <Users className="h-6 w-6 text-primary" />
           </div>
           <div>
-            <h3 className="text-lg font-semibold text-foreground">Meu IP</h3>
+            <h3 className="text-lg font-semibold text-foreground">Separador de Contas</h3>
             <p className="text-sm text-muted-foreground">
-              Seu endereco IP publico atual.
+              Cole a conta para separar email e senha.
             </p>
           </div>
         </div>
 
-        <div className="flex items-center justify-between rounded-xl bg-input/50 p-4">
-          <p className="font-mono text-xl font-bold text-foreground">
-            {loading ? "Carregando..." : ip}
-          </p>
-          <Button
-            variant="ghost"
-            size="icon"
-            className={`h-10 w-10 rounded-xl text-muted-foreground transition-all duration-300 hover:bg-primary/10 hover:text-primary active:scale-95 ${
-              copied ? "copy-animation" : ""
+        {/* Account Type Toggle */}
+        <div className="mb-4 flex gap-2">
+          <button
+            onClick={() => setAccountType("rockstar")}
+            className={`flex-1 rounded-xl px-4 py-3 text-sm font-medium transition-all duration-300 ${
+              accountType === "rockstar"
+                ? "bg-primary text-primary-foreground shadow-lg shadow-primary/30"
+                : "bg-secondary/50 text-muted-foreground hover:bg-secondary/70"
             }`}
-            onClick={() => copyIP()}
-            disabled={loading}
           >
-            {copied ? (
-              <Check className="h-5 w-5 text-green-500" />
-            ) : (
-              <Copy className="h-5 w-5" />
-            )}
-          </Button>
+            Rockstar
+          </button>
+          <button
+            onClick={() => setAccountType("discord")}
+            className={`flex-1 rounded-xl px-4 py-3 text-sm font-medium transition-all duration-300 ${
+              accountType === "discord"
+                ? "bg-primary text-primary-foreground shadow-lg shadow-primary/30"
+                : "bg-secondary/50 text-muted-foreground hover:bg-secondary/70"
+            }`}
+          >
+            Discord
+          </button>
         </div>
+
+        <Textarea
+          placeholder="Cole aqui: email:senha ou email|senha"
+          value={inputText}
+          onChange={(e) => setInputText(e.target.value)}
+          className="mb-4 min-h-[100px] rounded-xl border-border/50 bg-input/50 font-mono text-sm placeholder:text-muted-foreground/60 focus:border-primary/50 focus:ring-2 focus:ring-primary/20 resize-none"
+        />
+
+        <Button
+          onClick={separateAccount}
+          disabled={!inputText.trim()}
+          className="w-full h-11 rounded-xl bg-primary font-medium text-primary-foreground shadow-lg shadow-primary/20 transition-all duration-300 hover:bg-primary/90 hover:shadow-xl hover:shadow-primary/30 active:scale-[0.98] disabled:opacity-50 disabled:shadow-none"
+        >
+          <SplitSquareVertical className="mr-2 h-4 w-4" />
+          Separar Conta
+        </Button>
       </div>
 
-      {/* Recent IPs */}
-      {recentIPs.length > 0 && (
+      {/* Separated Accounts List */}
+      {separatedAccounts.length > 0 && (
         <div className="mt-6 rounded-2xl border border-border/50 bg-card/60 backdrop-blur-md">
           <div className="flex items-center justify-between border-b border-border/50 px-6 py-4">
             <h3 className="text-sm font-medium text-muted-foreground">
-              IPs Recentes
+              Contas Separadas
             </h3>
+            <span className="text-xs text-muted-foreground/60">
+              {separatedAccounts.length} conta(s)
+            </span>
           </div>
 
-          <div className="divide-y divide-border/50">
-            {recentIPs.map((item, index) => (
+          <div className="divide-y divide-border/50 max-h-[400px] overflow-y-auto">
+            {separatedAccounts.map((account, index) => (
               <div
                 key={index}
-                className="group flex items-center justify-between px-6 py-4 transition-colors hover:bg-secondary/20"
+                className="group px-6 py-4 transition-colors hover:bg-secondary/20"
               >
-                <div>
-                  <p className="font-mono text-sm font-medium text-foreground">
-                    {item.ip}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    {formatDate(item.timestamp)}
-                  </p>
+                <div className="flex items-center justify-between mb-2">
+                  <span className={`text-xs font-medium px-2 py-1 rounded-full ${
+                    account.type === "rockstar" 
+                      ? "bg-orange-500/20 text-orange-400" 
+                      : "bg-indigo-500/20 text-indigo-400"
+                  }`}>
+                    {account.type === "rockstar" ? "Rockstar" : "Discord"}
+                  </span>
+                  <div className="flex items-center gap-1 opacity-60 group-hover:opacity-100 transition-opacity">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 text-muted-foreground transition-all duration-300 hover:bg-destructive/10 hover:text-destructive active:scale-95"
+                      onClick={() => deleteSeparatedAccount(index)}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2 opacity-60 group-hover:opacity-100 transition-opacity">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 text-muted-foreground transition-all duration-300 hover:bg-destructive/10 hover:text-destructive active:scale-95"
-                    onClick={() => deleteIP(index)}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className={`relative h-8 w-8 text-muted-foreground transition-all duration-300 hover:bg-primary/10 hover:text-primary active:scale-95 ${
-                      copiedIP === item.ip ? "copy-animation" : ""
-                    }`}
-                    onClick={() => copyIP(item.ip)}
-                  >
-                    {copiedIP === item.ip ? (
-                      <Check className="h-4 w-4 text-green-500" />
-                    ) : (
-                      <Copy className="h-4 w-4" />
-                    )}
-                    {copiedIP === item.ip && (
-                      <span className="ripple-effect absolute inset-0 rounded-lg" />
-                    )}
-                  </Button>
+                
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between bg-input/30 rounded-lg px-3 py-2">
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-0.5">Email</p>
+                      <p className="font-mono text-sm text-foreground">{account.email}</p>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className={`h-7 w-7 text-muted-foreground transition-all duration-300 hover:bg-primary/10 hover:text-primary active:scale-95 ${
+                        copiedCode === account.email ? "copy-animation" : ""
+                      }`}
+                      onClick={() => copyCode(account.email)}
+                    >
+                      {copiedCode === account.email ? (
+                        <Check className="h-3.5 w-3.5 text-green-500" />
+                      ) : (
+                        <Copy className="h-3.5 w-3.5" />
+                      )}
+                    </Button>
+                  </div>
+                  
+                  <div className="flex items-center justify-between bg-input/30 rounded-lg px-3 py-2">
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-0.5">Senha</p>
+                      <p className="font-mono text-sm text-foreground">{account.password}</p>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className={`h-7 w-7 text-muted-foreground transition-all duration-300 hover:bg-primary/10 hover:text-primary active:scale-95 ${
+                        copiedCode === account.password ? "copy-animation" : ""
+                      }`}
+                      onClick={() => copyCode(account.password)}
+                    >
+                      {copiedCode === account.password ? (
+                        <Check className="h-3.5 w-3.5 text-green-500" />
+                      ) : (
+                        <Copy className="h-3.5 w-3.5" />
+                      )}
+                    </Button>
+                  </div>
                 </div>
+
+                <p className="text-xs text-muted-foreground/60 mt-2">
+                  {formatDate(account.timestamp)}
+                </p>
               </div>
             ))}
           </div>
@@ -482,6 +580,25 @@ function SeparadorTab({ triggerConfetti }: { triggerConfetti: () => void }) {
 // Baixar Videos Tab Component
 function BaixarVideosTab() {
   const [url, setUrl] = useState("")
+  const [platform, setPlatform] = useState<"youtube" | "tiktok">("youtube")
+
+  const downloadVideo = () => {
+    if (!url.trim()) {
+      toast.error("Cole o link do video!")
+      return
+    }
+
+    let downloadUrl = ""
+    
+    if (platform === "youtube") {
+      downloadUrl = `https://www.y2mate.com/youtube/${encodeURIComponent(url)}`
+    } else {
+      downloadUrl = `https://ssstik.io/pt`
+    }
+
+    window.open(downloadUrl, '_blank')
+    toast.success("Abrindo downloader...")
+  }
 
   return (
     <div className="w-full max-w-lg">
@@ -494,25 +611,46 @@ function BaixarVideosTab() {
           <div>
             <h3 className="text-lg font-semibold text-foreground">Baixar Videos</h3>
             <p className="text-sm text-muted-foreground">
-              Cole o link do video para baixar.
+              Baixe videos do YouTube e TikTok.
             </p>
           </div>
         </div>
 
+        {/* Platform Toggle */}
+        <div className="mb-4 flex gap-2">
+          <button
+            onClick={() => setPlatform("youtube")}
+            className={`flex-1 rounded-xl px-4 py-3 text-sm font-medium transition-all duration-300 ${
+              platform === "youtube"
+                ? "bg-primary text-primary-foreground shadow-lg shadow-primary/30"
+                : "bg-secondary/50 text-muted-foreground hover:bg-secondary/70"
+            }`}
+          >
+            YouTube
+          </button>
+          <button
+            onClick={() => setPlatform("tiktok")}
+            className={`flex-1 rounded-xl px-4 py-3 text-sm font-medium transition-all duration-300 ${
+              platform === "tiktok"
+                ? "bg-primary text-primary-foreground shadow-lg shadow-primary/30"
+                : "bg-secondary/50 text-muted-foreground hover:bg-secondary/70"
+            }`}
+          >
+            TikTok
+          </button>
+        </div>
+
         <Input
-          placeholder="Cole o link do video aqui..."
+          placeholder={`Cole o link do ${platform === "youtube" ? "YouTube" : "TikTok"} aqui...`}
           value={url}
           onChange={(e) => setUrl(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && downloadVideo()}
           className="mb-4 h-12 rounded-xl border-border/50 bg-input/50 font-mono text-sm placeholder:text-muted-foreground/60 focus:border-primary/50 focus:ring-2 focus:ring-primary/20"
         />
 
         <Button
-          onClick={() => {
-            if (url) {
-              window.open(`https://www.y2mate.com/youtube/${encodeURIComponent(url)}`, '_blank')
-            }
-          }}
-          disabled={!url}
+          onClick={downloadVideo}
+          disabled={!url.trim()}
           className="w-full h-11 rounded-xl bg-primary font-medium text-primary-foreground shadow-lg shadow-primary/20 transition-all duration-300 hover:bg-primary/90 hover:shadow-xl hover:shadow-primary/30 active:scale-[0.98] disabled:opacity-50 disabled:shadow-none"
         >
           <Download className="mr-2 h-4 w-4" />
@@ -520,7 +658,7 @@ function BaixarVideosTab() {
         </Button>
 
         <p className="mt-4 text-center text-xs text-muted-foreground">
-          Suporta YouTube, Instagram, TikTok e mais
+          Sera redirecionado para o site de download
         </p>
       </div>
     </div>
