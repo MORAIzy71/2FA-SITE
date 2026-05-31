@@ -8,8 +8,8 @@ const _geist = Geist({ subsets: ["latin"] });
 const _geistMono = Geist_Mono({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: '2FA Bernadu - Utilidades',
-  description: 'Ferramentas utilitarias: Gerador 2FA, Meu IP, Baixar Videos e Senhas',
+  title: '2FA - BERNADU FERRAMENTAS',
+  description: 'Ferramentas utilitarias: Gerador 2FA, Separador (Meu IP) e Baixar Videos',
   generator: 'v0.app',
   icons: {
     icon: '/icon.png',

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback, useRef } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { TOTP } from "otpauth"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
@@ -14,7 +14,9 @@ import {
   Download, 
   Key as KeyIcon,
   Trash2,
-  Shuffle
+  Lock,
+  HelpCircle,
+  Code2
 } from "lucide-react"
 
 function generateCode(secret: string): string {
@@ -32,19 +34,15 @@ function generateCode(secret: string): string {
   }
 }
 
-function generateRandomSecret(): string {
-  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567"
-  let secret = ""
-  for (let i = 0; i < 32; i++) {
-    secret += chars.charAt(Math.floor(Math.random() * chars.length))
-  }
-  return secret
-}
-
-type TabType = "2fa" | "meuip" | "baixarvideos" | "senhas"
+type TabType = "2fa" | "separador" | "baixarvideos"
 
 interface RecentCode {
   code: string
+  timestamp: Date
+}
+
+interface RecentIP {
+  ip: string
   timestamp: Date
 }
 
@@ -54,7 +52,6 @@ export function TOTPGenerator() {
   const [recentCodes, setRecentCodes] = useState<RecentCode[]>([])
   const [copiedCode, setCopiedCode] = useState<string | null>(null)
   const [showHelpDialog, setShowHelpDialog] = useState(false)
-  const copyButtonRef = useRef<HTMLButtonElement>(null)
 
   const triggerConfetti = () => {
     const runConfetti = () => {
@@ -70,45 +67,16 @@ export function TOTPGenerator() {
         angle?: number
       }) => void }).confetti
 
-      // Explosao vermelho lado esquerdo
       confettiFunc({
-        particleCount: 60,
-        spread: 55,
-        origin: { x: 0, y: 0.6 },
-        colors: ["#dc2626", "#ef4444", "#b91c1c", "#f87171", "#991b1b"],
-        startVelocity: 45,
+        particleCount: 80,
+        spread: 70,
+        origin: { x: 0.5, y: 0.5 },
+        colors: ["#dc2626", "#ef4444", "#b91c1c", "#f87171", "#991b1b", "#fca5a5"],
+        startVelocity: 30,
         gravity: 0.8,
-        scalar: 1.2,
-        ticks: 150,
-        angle: 60,
+        scalar: 1.1,
+        ticks: 100,
       })
-
-      // Explosao vermelho lado direito
-      confettiFunc({
-        particleCount: 60,
-        spread: 55,
-        origin: { x: 1, y: 0.6 },
-        colors: ["#dc2626", "#ef4444", "#b91c1c", "#f87171", "#991b1b"],
-        startVelocity: 45,
-        gravity: 0.8,
-        scalar: 1.2,
-        ticks: 150,
-        angle: 120,
-      })
-
-      // Explosao do centro
-      setTimeout(() => {
-        confettiFunc({
-          particleCount: 80,
-          spread: 100,
-          origin: { x: 0.5, y: 0.3 },
-          colors: ["#dc2626", "#ef4444", "#fca5a5", "#fee2e2", "#b91c1c"],
-          startVelocity: 35,
-          gravity: 1,
-          scalar: 1,
-          ticks: 120,
-        })
-      }, 100)
     }
     
     if (!document.querySelector('script[src*="canvas-confetti"]')) {
@@ -131,6 +99,7 @@ export function TOTPGenerator() {
         timestamp: new Date()
       }
       setRecentCodes(prev => [newCode, ...prev.slice(0, 9)])
+      setSecret("")
       toast.success("Codigo gerado!", {
         description: "Chave adicionada aos codigos recentes.",
       })
@@ -160,33 +129,34 @@ export function TOTPGenerator() {
 
   const tabs = [
     { id: "2fa" as TabType, label: "2FA", icon: Shield },
-    { id: "meuip" as TabType, label: "Meu IP", icon: Globe },
+    { id: "separador" as TabType, label: "Separador", icon: Code2 },
     { id: "baixarvideos" as TabType, label: "Baixar Videos", icon: Download },
-    { id: "senhas" as TabType, label: "Senhas", icon: KeyIcon },
   ]
 
   return (
     <div className="min-h-screen bg-background grid-background">
-      <div className="flex flex-col items-center px-4 py-12">
+      <div className="flex flex-col items-center px-4 py-16">
         {/* Header Icon */}
-        <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-xl bg-primary/20">
-          <KeyIcon className="h-7 w-7 text-primary" />
+        <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/15 ring-1 ring-primary/30">
+          <Lock className="h-8 w-8 text-primary" />
         </div>
 
         {/* Title */}
-        <h1 className="mb-8 text-2xl font-bold text-foreground">Utilidades</h1>
+        <h1 className="mb-10 text-2xl font-bold tracking-wide text-foreground">
+          2FA - BERNADU FERRAMENTAS
+        </h1>
 
         {/* Tab Navigation */}
-        <div className="mb-6 flex items-center gap-1 rounded-full bg-card/80 p-1.5 ring-1 ring-border backdrop-blur-sm">
+        <div className="mb-8 flex items-center gap-1 rounded-full bg-card/60 p-1.5 ring-1 ring-border/50 backdrop-blur-md">
           {tabs.map((tab) => {
             const Icon = tab.icon
             return (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center gap-2 rounded-full px-4 py-2.5 text-sm font-medium transition-all duration-300 ${
+                className={`flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-medium transition-all duration-300 ${
                   activeTab === tab.id
-                    ? "bg-primary text-primary-foreground shadow-md"
+                    ? "bg-primary text-primary-foreground shadow-lg shadow-primary/30"
                     : "text-muted-foreground hover:bg-secondary/50 hover:text-foreground"
                 }`}
               >
@@ -198,136 +168,32 @@ export function TOTPGenerator() {
         </div>
 
         {/* Subtitle Badge */}
-        <div className="mb-10 inline-flex items-center gap-2 rounded-full border border-border bg-card/50 px-4 py-1.5 text-xs text-muted-foreground backdrop-blur-sm">
-          <Shield className="h-3.5 w-3.5" />
-          Gere codigos de autenticacao de dois fatores
+        <div className="mb-12 inline-flex items-center gap-2 rounded-full border border-border/50 bg-card/40 px-5 py-2 text-sm text-muted-foreground backdrop-blur-md">
+          <Shield className="h-4 w-4 text-primary" />
+          Gere codigos de autenticacao 2FA
         </div>
 
         {/* Main Content */}
         {activeTab === "2fa" && (
-          <div className="w-full max-w-xl">
-            {/* 2FA Icon */}
-            <div className="mb-4 flex justify-center">
-              <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 ring-1 ring-primary/20">
-                <Shield className="h-8 w-8 text-primary" />
-              </div>
-            </div>
-
-            {/* Title */}
-            <h2 className="mb-2 text-center text-2xl font-bold text-foreground">
-              2FA Bernadu
-            </h2>
-            <p className="mb-8 text-center text-sm text-muted-foreground">
-              Gere codigos de autenticacao de dois fatores
-            </p>
-
-            {/* Secret Key Input Card */}
-            <div className="mb-6 rounded-2xl border border-border bg-card/80 p-6 backdrop-blur-sm">
-              <div className="mb-4 flex items-center gap-2 text-sm text-muted-foreground">
-                <KeyIcon className="h-4 w-4" />
-                Chave secreta
-              </div>
-              
-              <div className="flex gap-3">
-                <Input
-                  placeholder="Cole a chave secreta aqui..."
-                  value={secret}
-                  onChange={(e) => setSecret(e.target.value)}
-                  className="h-12 flex-1 rounded-xl border-border bg-input font-mono text-sm tracking-wider placeholder:text-muted-foreground focus:border-primary/50 focus:ring-2 focus:ring-primary/20"
-                />
-                <Button
-                  onClick={generateNewCode}
-                  className="h-12 rounded-xl bg-primary px-6 font-medium text-primary-foreground shadow-lg shadow-primary/20 transition-all duration-300 hover:bg-primary/90 hover:shadow-xl hover:shadow-primary/30 active:scale-[0.98]"
-                >
-                  Gerar
-                </Button>
-              </div>
-            </div>
-
-            {/* Recent Codes */}
-            <div className="rounded-2xl border border-border bg-card/80 backdrop-blur-sm">
-              <div className="flex items-center justify-between border-b border-border px-6 py-4">
-                <h3 className="text-sm font-medium text-muted-foreground">
-                  Codigos Recentes
-                </h3>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8 text-muted-foreground hover:text-foreground"
-                  onClick={() => {
-                    const newSecret = generateRandomSecret()
-                    setSecret(newSecret)
-                  }}
-                >
-                  <Shuffle className="h-4 w-4" />
-                </Button>
-              </div>
-
-              {recentCodes.length === 0 ? (
-                <div className="px-6 py-8 text-center text-sm text-muted-foreground">
-                  Nenhum codigo gerado ainda
-                </div>
-              ) : (
-                <div className="divide-y divide-border">
-                  {recentCodes.map((item, index) => (
-                    <div
-                      key={index}
-                      className="flex items-center justify-between px-6 py-4 transition-colors hover:bg-secondary/30"
-                    >
-                      <div>
-                        <p className="font-mono text-sm font-medium text-foreground">
-                          {item.code}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {formatDate(item.timestamp)}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-muted-foreground transition-all duration-300 hover:bg-destructive/10 hover:text-destructive active:scale-95"
-                          onClick={() => deleteCode(index)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          ref={index === 0 ? copyButtonRef : undefined}
-                          variant="ghost"
-                          size="icon"
-                          className={`relative h-8 w-8 text-muted-foreground transition-all duration-300 hover:bg-primary/10 hover:text-primary active:scale-95 ${
-                            copiedCode === item.code ? "copy-animation" : ""
-                          }`}
-                          onClick={() => copyCode(item.code)}
-                        >
-                          {copiedCode === item.code ? (
-                            <Check className="h-4 w-4 text-green-500" />
-                          ) : (
-                            <Copy className="h-4 w-4" />
-                          )}
-                          {copiedCode === item.code && (
-                            <span className="ripple-effect absolute inset-0 rounded-lg" />
-                          )}
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
+          <TwoFATab
+            secret={secret}
+            setSecret={setSecret}
+            recentCodes={recentCodes}
+            generateNewCode={generateNewCode}
+            copyCode={copyCode}
+            deleteCode={deleteCode}
+            copiedCode={copiedCode}
+            formatDate={formatDate}
+            setShowHelpDialog={setShowHelpDialog}
+          />
         )}
 
-        {activeTab === "meuip" && (
-          <MeuIPTab />
+        {activeTab === "separador" && (
+          <SeparadorTab triggerConfetti={triggerConfetti} />
         )}
 
         {activeTab === "baixarvideos" && (
           <BaixarVideosTab />
-        )}
-
-        {activeTab === "senhas" && (
-          <SenhasTab triggerConfetti={triggerConfetti} />
         )}
       </div>
 
@@ -340,61 +206,209 @@ export function TOTPGenerator() {
   )
 }
 
-// Meu IP Tab Component
-function MeuIPTab() {
+// 2FA Tab Component
+interface TwoFATabProps {
+  secret: string
+  setSecret: (value: string) => void
+  recentCodes: RecentCode[]
+  generateNewCode: () => void
+  copyCode: (code: string) => Promise<void>
+  deleteCode: (index: number) => void
+  copiedCode: string | null
+  formatDate: (date: Date) => string
+  setShowHelpDialog: (value: boolean) => void
+}
+
+function TwoFATab({ 
+  secret, 
+  setSecret, 
+  recentCodes, 
+  generateNewCode, 
+  copyCode, 
+  deleteCode,
+  copiedCode,
+  formatDate,
+  setShowHelpDialog
+}: TwoFATabProps) {
+  return (
+    <div className="w-full max-w-lg">
+      {/* Secret Key Input Card */}
+      <div className="rounded-2xl border border-border/50 bg-card/60 p-6 backdrop-blur-md">
+        <div className="mb-4 flex items-start gap-4">
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary/15 ring-1 ring-primary/30">
+            <KeyIcon className="h-6 w-6 text-primary" />
+          </div>
+          <div>
+            <h3 className="text-lg font-semibold text-foreground">Chave Secreta</h3>
+            <p className="text-sm text-muted-foreground">
+              Insira a chave que foi enviada no chat da compra.
+            </p>
+          </div>
+        </div>
+        
+        <Input
+          placeholder="Cole a chave secreta TOTP aqui..."
+          value={secret}
+          onChange={(e) => setSecret(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && generateNewCode()}
+          className="mb-4 h-12 rounded-xl border-border/50 bg-input/50 font-mono text-sm tracking-wider placeholder:text-muted-foreground/60 focus:border-primary/50 focus:ring-2 focus:ring-primary/20"
+        />
+
+        <Button
+          onClick={() => setShowHelpDialog(true)}
+          variant="outline"
+          className="w-full h-11 rounded-xl border-primary/50 text-primary hover:bg-primary/10 hover:text-primary transition-all duration-300"
+        >
+          <HelpCircle className="mr-2 h-4 w-4" />
+          Codigo Invalido?
+        </Button>
+      </div>
+
+      {/* Recent Codes */}
+      {recentCodes.length > 0 && (
+        <div className="mt-6 rounded-2xl border border-border/50 bg-card/60 backdrop-blur-md">
+          <div className="flex items-center justify-between border-b border-border/50 px-6 py-4">
+            <h3 className="text-sm font-medium text-muted-foreground">
+              Codigos Recentes
+            </h3>
+          </div>
+
+          <div className="divide-y divide-border/50">
+            {recentCodes.map((item, index) => (
+              <div
+                key={index}
+                className="group flex items-center justify-between px-6 py-4 transition-colors hover:bg-secondary/20"
+              >
+                <div>
+                  <p className="font-mono text-sm font-medium text-foreground">
+                    {item.code}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {formatDate(item.timestamp)}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2 opacity-60 group-hover:opacity-100 transition-opacity">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-muted-foreground transition-all duration-300 hover:bg-destructive/10 hover:text-destructive active:scale-95"
+                    onClick={() => deleteCode(index)}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className={`relative h-8 w-8 text-muted-foreground transition-all duration-300 hover:bg-primary/10 hover:text-primary active:scale-95 ${
+                      copiedCode === item.code ? "copy-animation" : ""
+                    }`}
+                    onClick={() => copyCode(item.code)}
+                  >
+                    {copiedCode === item.code ? (
+                      <Check className="h-4 w-4 text-green-500" />
+                    ) : (
+                      <Copy className="h-4 w-4" />
+                    )}
+                    {copiedCode === item.code && (
+                      <span className="ripple-effect absolute inset-0 rounded-lg" />
+                    )}
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// Separador Tab Component (Meu IP com IPs Recentes)
+function SeparadorTab({ triggerConfetti }: { triggerConfetti: () => void }) {
   const [ip, setIp] = useState<string>("")
   const [loading, setLoading] = useState(true)
   const [copied, setCopied] = useState(false)
+  const [recentIPs, setRecentIPs] = useState<RecentIP[]>([])
+  const [copiedIP, setCopiedIP] = useState<string | null>(null)
 
   useEffect(() => {
+    fetchIP()
+  }, [])
+
+  const fetchIP = () => {
+    setLoading(true)
     fetch("https://api.ipify.org?format=json")
       .then(res => res.json())
       .then(data => {
         setIp(data.ip)
         setLoading(false)
+        
+        // Add to recent IPs if not already there
+        setRecentIPs(prev => {
+          const exists = prev.some(item => item.ip === data.ip)
+          if (!exists) {
+            return [{ ip: data.ip, timestamp: new Date() }, ...prev.slice(0, 9)]
+          }
+          return prev
+        })
       })
       .catch(() => {
         setIp("Erro ao obter IP")
         setLoading(false)
       })
-  }, [])
+  }
 
-  const copyIP = async () => {
-    if (!ip || ip === "Erro ao obter IP") return
-    await navigator.clipboard.writeText(ip)
-    setCopied(true)
+  const copyIP = async (ipToCopy?: string) => {
+    const targetIP = ipToCopy || ip
+    if (!targetIP || targetIP === "Erro ao obter IP") return
+    await navigator.clipboard.writeText(targetIP)
+    if (ipToCopy) {
+      setCopiedIP(ipToCopy)
+      setTimeout(() => setCopiedIP(null), 2000)
+    } else {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    }
+    triggerConfetti()
     toast.success("IP copiado!")
-    setTimeout(() => setCopied(false), 2000)
+  }
+
+  const deleteIP = (index: number) => {
+    setRecentIPs(prev => prev.filter((_, i) => i !== index))
+    toast.success("IP removido!")
+  }
+
+  const formatDate = (date: Date) => {
+    return `${date.toLocaleDateString('pt-BR')} as ${date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`
   }
 
   return (
-    <div className="w-full max-w-xl">
-      <div className="mb-4 flex justify-center">
-        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 ring-1 ring-primary/20">
-          <Globe className="h-8 w-8 text-primary" />
-        </div>
-      </div>
-
-      <h2 className="mb-2 text-center text-2xl font-bold text-foreground">
-        Meu IP
-      </h2>
-      <p className="mb-8 text-center text-sm text-muted-foreground">
-        Veja seu endereco IP publico
-      </p>
-
-      <div className="rounded-2xl border border-border bg-card/80 p-6 backdrop-blur-sm">
-        <div className="flex items-center justify-between">
+    <div className="w-full max-w-lg">
+      {/* Current IP Card */}
+      <div className="rounded-2xl border border-border/50 bg-card/60 p-6 backdrop-blur-md">
+        <div className="mb-4 flex items-start gap-4">
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary/15 ring-1 ring-primary/30">
+            <Globe className="h-6 w-6 text-primary" />
+          </div>
           <div>
-            <p className="text-xs text-muted-foreground mb-1">Seu IP Publico</p>
-            <p className="font-mono text-2xl font-bold text-foreground">
-              {loading ? "Carregando..." : ip}
+            <h3 className="text-lg font-semibold text-foreground">Meu IP</h3>
+            <p className="text-sm text-muted-foreground">
+              Seu endereco IP publico atual.
             </p>
           </div>
+        </div>
+
+        <div className="flex items-center justify-between rounded-xl bg-input/50 p-4">
+          <p className="font-mono text-xl font-bold text-foreground">
+            {loading ? "Carregando..." : ip}
+          </p>
           <Button
             variant="ghost"
             size="icon"
-            className="h-12 w-12 rounded-xl text-muted-foreground transition-all duration-300 hover:bg-primary/10 hover:text-primary active:scale-95"
-            onClick={copyIP}
+            className={`h-10 w-10 rounded-xl text-muted-foreground transition-all duration-300 hover:bg-primary/10 hover:text-primary active:scale-95 ${
+              copied ? "copy-animation" : ""
+            }`}
+            onClick={() => copyIP()}
             disabled={loading}
           >
             {copied ? (
@@ -405,6 +419,62 @@ function MeuIPTab() {
           </Button>
         </div>
       </div>
+
+      {/* Recent IPs */}
+      {recentIPs.length > 0 && (
+        <div className="mt-6 rounded-2xl border border-border/50 bg-card/60 backdrop-blur-md">
+          <div className="flex items-center justify-between border-b border-border/50 px-6 py-4">
+            <h3 className="text-sm font-medium text-muted-foreground">
+              IPs Recentes
+            </h3>
+          </div>
+
+          <div className="divide-y divide-border/50">
+            {recentIPs.map((item, index) => (
+              <div
+                key={index}
+                className="group flex items-center justify-between px-6 py-4 transition-colors hover:bg-secondary/20"
+              >
+                <div>
+                  <p className="font-mono text-sm font-medium text-foreground">
+                    {item.ip}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {formatDate(item.timestamp)}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2 opacity-60 group-hover:opacity-100 transition-opacity">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-muted-foreground transition-all duration-300 hover:bg-destructive/10 hover:text-destructive active:scale-95"
+                    onClick={() => deleteIP(index)}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className={`relative h-8 w-8 text-muted-foreground transition-all duration-300 hover:bg-primary/10 hover:text-primary active:scale-95 ${
+                      copiedIP === item.ip ? "copy-animation" : ""
+                    }`}
+                    onClick={() => copyIP(item.ip)}
+                  >
+                    {copiedIP === item.ip ? (
+                      <Check className="h-4 w-4 text-green-500" />
+                    ) : (
+                      <Copy className="h-4 w-4" />
+                    )}
+                    {copiedIP === item.ip && (
+                      <span className="ripple-effect absolute inset-0 rounded-lg" />
+                    )}
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -414,164 +484,44 @@ function BaixarVideosTab() {
   const [url, setUrl] = useState("")
 
   return (
-    <div className="w-full max-w-xl">
-      <div className="mb-4 flex justify-center">
-        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 ring-1 ring-primary/20">
-          <Download className="h-8 w-8 text-primary" />
+    <div className="w-full max-w-lg">
+      {/* Download Card */}
+      <div className="rounded-2xl border border-border/50 bg-card/60 p-6 backdrop-blur-md">
+        <div className="mb-4 flex items-start gap-4">
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary/15 ring-1 ring-primary/30">
+            <Download className="h-6 w-6 text-primary" />
+          </div>
+          <div>
+            <h3 className="text-lg font-semibold text-foreground">Baixar Videos</h3>
+            <p className="text-sm text-muted-foreground">
+              Cole o link do video para baixar.
+            </p>
+          </div>
         </div>
-      </div>
 
-      <h2 className="mb-2 text-center text-2xl font-bold text-foreground">
-        Baixar Videos
-      </h2>
-      <p className="mb-8 text-center text-sm text-muted-foreground">
-        Cole o link do video para baixar
-      </p>
+        <Input
+          placeholder="Cole o link do video aqui..."
+          value={url}
+          onChange={(e) => setUrl(e.target.value)}
+          className="mb-4 h-12 rounded-xl border-border/50 bg-input/50 font-mono text-sm placeholder:text-muted-foreground/60 focus:border-primary/50 focus:ring-2 focus:ring-primary/20"
+        />
 
-      <div className="rounded-2xl border border-border bg-card/80 p-6 backdrop-blur-sm">
-        <div className="flex gap-3">
-          <Input
-            placeholder="Cole o link do video aqui..."
-            value={url}
-            onChange={(e) => setUrl(e.target.value)}
-            className="h-12 flex-1 rounded-xl border-border bg-input font-mono text-sm placeholder:text-muted-foreground focus:border-primary/50 focus:ring-2 focus:ring-primary/20"
-          />
-          <Button
-            onClick={() => {
-              if (url) {
-                window.open(`https://www.y2mate.com/youtube/${encodeURIComponent(url)}`, '_blank')
-              }
-            }}
-            disabled={!url}
-            className="h-12 rounded-xl bg-primary px-6 font-medium text-primary-foreground shadow-lg shadow-primary/20 transition-all duration-300 hover:bg-primary/90 hover:shadow-xl hover:shadow-primary/30 active:scale-[0.98] disabled:opacity-50"
-          >
-            Baixar
-          </Button>
-        </div>
+        <Button
+          onClick={() => {
+            if (url) {
+              window.open(`https://www.y2mate.com/youtube/${encodeURIComponent(url)}`, '_blank')
+            }
+          }}
+          disabled={!url}
+          className="w-full h-11 rounded-xl bg-primary font-medium text-primary-foreground shadow-lg shadow-primary/20 transition-all duration-300 hover:bg-primary/90 hover:shadow-xl hover:shadow-primary/30 active:scale-[0.98] disabled:opacity-50 disabled:shadow-none"
+        >
+          <Download className="mr-2 h-4 w-4" />
+          Baixar Video
+        </Button>
+
         <p className="mt-4 text-center text-xs text-muted-foreground">
           Suporta YouTube, Instagram, TikTok e mais
         </p>
-      </div>
-    </div>
-  )
-}
-
-// Senhas Tab Component
-function SenhasTab({ triggerConfetti }: { triggerConfetti: () => void }) {
-  const [password, setPassword] = useState("")
-  const [length, setLength] = useState(16)
-  const [includeNumbers, setIncludeNumbers] = useState(true)
-  const [includeSymbols, setIncludeSymbols] = useState(true)
-  const [copied, setCopied] = useState(false)
-
-  const generatePassword = useCallback(() => {
-    let chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
-    if (includeNumbers) chars += "0123456789"
-    if (includeSymbols) chars += "!@#$%^&*()_+-=[]{}|;:,.<>?"
-    
-    let result = ""
-    for (let i = 0; i < length; i++) {
-      result += chars.charAt(Math.floor(Math.random() * chars.length))
-    }
-    setPassword(result)
-  }, [length, includeNumbers, includeSymbols])
-
-  useEffect(() => {
-    generatePassword()
-  }, [generatePassword])
-
-  const copyPassword = async () => {
-    if (!password) return
-    await navigator.clipboard.writeText(password)
-    setCopied(true)
-    triggerConfetti()
-    toast.success("Senha copiada!")
-    setTimeout(() => setCopied(false), 2000)
-  }
-
-  return (
-    <div className="w-full max-w-xl">
-      <div className="mb-4 flex justify-center">
-        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 ring-1 ring-primary/20">
-          <KeyIcon className="h-8 w-8 text-primary" />
-        </div>
-      </div>
-
-      <h2 className="mb-2 text-center text-2xl font-bold text-foreground">
-        Gerador de Senhas
-      </h2>
-      <p className="mb-8 text-center text-sm text-muted-foreground">
-        Gere senhas seguras e aleatorias
-      </p>
-
-      <div className="rounded-2xl border border-border bg-card/80 p-6 backdrop-blur-sm">
-        {/* Password Display */}
-        <div className="mb-6 flex items-center gap-3 rounded-xl bg-input p-4">
-          <p className="flex-1 font-mono text-lg font-medium text-foreground break-all">
-            {password}
-          </p>
-          <Button
-            variant="ghost"
-            size="icon"
-            className={`h-10 w-10 shrink-0 rounded-xl text-muted-foreground transition-all duration-300 hover:bg-primary/10 hover:text-primary active:scale-95 ${
-              copied ? "copy-animation" : ""
-            }`}
-            onClick={copyPassword}
-          >
-            {copied ? (
-              <Check className="h-5 w-5 text-green-500" />
-            ) : (
-              <Copy className="h-5 w-5" />
-            )}
-          </Button>
-        </div>
-
-        {/* Length Slider */}
-        <div className="mb-4">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm text-muted-foreground">Tamanho</span>
-            <span className="text-sm font-medium text-foreground">{length}</span>
-          </div>
-          <input
-            type="range"
-            min="8"
-            max="32"
-            value={length}
-            onChange={(e) => setLength(Number(e.target.value))}
-            className="w-full h-2 bg-secondary rounded-lg appearance-none cursor-pointer accent-primary"
-          />
-        </div>
-
-        {/* Options */}
-        <div className="mb-6 flex flex-wrap gap-4">
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={includeNumbers}
-              onChange={(e) => setIncludeNumbers(e.target.checked)}
-              className="h-4 w-4 rounded border-border text-primary focus:ring-primary/20 accent-primary"
-            />
-            <span className="text-sm text-foreground">Numeros</span>
-          </label>
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={includeSymbols}
-              onChange={(e) => setIncludeSymbols(e.target.checked)}
-              className="h-4 w-4 rounded border-border text-primary focus:ring-primary/20 accent-primary"
-            />
-            <span className="text-sm text-foreground">Simbolos</span>
-          </label>
-        </div>
-
-        {/* Generate Button */}
-        <Button
-          onClick={generatePassword}
-          className="h-12 w-full rounded-xl bg-primary font-medium text-primary-foreground shadow-lg shadow-primary/20 transition-all duration-300 hover:bg-primary/90 hover:shadow-xl hover:shadow-primary/30 active:scale-[0.98]"
-        >
-          <Shuffle className="mr-2 h-4 w-4" />
-          Gerar Nova Senha
-        </Button>
       </div>
     </div>
   )
