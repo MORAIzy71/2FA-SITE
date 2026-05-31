@@ -38,6 +38,7 @@ function generateCode(secret: string): string {
 type TabType = "2fa" | "separador" | "baixarvideos"
 
 interface RecentCode {
+  secret: string
   code: string
   timestamp: Date
 }
@@ -96,16 +97,18 @@ export function TOTPGenerator() {
   const generateNewCode = () => {
     if (!secret.trim()) return
     
-    const code = generateCode(secret.trim())
+    const cleanSecret = secret.trim().toUpperCase().replace(/\s+/g, "")
+    const code = generateCode(cleanSecret)
     if (code) {
       const newCode: RecentCode = {
-        code: secret.trim().toUpperCase(),
+        secret: cleanSecret,
+        code: code,
         timestamp: new Date()
       }
       setRecentCodes(prev => [newCode, ...prev.slice(0, 9)])
       setSecret("")
-      toast.success("Codigo gerado!", {
-        description: "Chave adicionada aos codigos recentes.",
+      toast.success("Codigo 2FA gerado!", {
+        description: `Codigo: ${code}`,
       })
     } else {
       setShowHelpDialog(true)
@@ -258,6 +261,29 @@ function TwoFATab({
   formatDate,
   setShowHelpDialog
 }: TwoFATabProps) {
+  const [liveCode, setLiveCode] = useState<string>("")
+  const [timeLeft, setTimeLeft] = useState<number>(30)
+
+  // Atualiza o codigo TOTP a cada segundo
+  useEffect(() => {
+    if (recentCodes.length === 0) return
+
+    const updateCode = () => {
+      const latestSecret = recentCodes[0].secret
+      const newCode = generateCode(latestSecret)
+      setLiveCode(newCode)
+      
+      // Calcula tempo restante (TOTP usa periodos de 30 segundos)
+      const now = Math.floor(Date.now() / 1000)
+      const remaining = 30 - (now % 30)
+      setTimeLeft(remaining)
+    }
+
+    updateCode()
+    const interval = setInterval(updateCode, 1000)
+    return () => clearInterval(interval)
+  }, [recentCodes])
+
   return (
     <div className="w-full max-w-lg">
       {/* Secret Key Input Card */}
@@ -282,22 +308,73 @@ function TwoFATab({
           className="mb-4 h-12 rounded-xl border-border/50 bg-input/50 font-mono text-sm tracking-wider placeholder:text-muted-foreground/60 focus:border-primary/50 focus:ring-2 focus:ring-primary/20"
         />
 
-        <Button
-          onClick={() => setShowHelpDialog(true)}
-          variant="outline"
-          className="w-full h-11 rounded-xl border-primary/50 text-primary hover:bg-primary/10 hover:text-primary transition-all duration-300"
-        >
-          <HelpCircle className="mr-2 h-4 w-4" />
-          Codigo Invalido?
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            onClick={generateNewCode}
+            disabled={!secret.trim()}
+            className="flex-1 h-11 rounded-xl bg-primary font-medium text-primary-foreground shadow-lg shadow-primary/20 transition-all duration-300 hover:bg-primary/90 hover:shadow-xl hover:shadow-primary/30 active:scale-[0.98] disabled:opacity-50 disabled:shadow-none"
+          >
+            Gerar Codigo
+          </Button>
+          <Button
+            onClick={() => setShowHelpDialog(true)}
+            variant="outline"
+            className="h-11 rounded-xl border-primary/50 text-primary hover:bg-primary/10 hover:text-primary transition-all duration-300"
+          >
+            <HelpCircle className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
+
+      {/* Live Code Display */}
+      {recentCodes.length > 0 && liveCode && (
+        <div className="mt-6 rounded-2xl border border-primary/30 bg-card/60 p-6 backdrop-blur-md">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-sm font-medium text-muted-foreground">Codigo Atual</h3>
+            <div className="flex items-center gap-2">
+              <div className={`w-2 h-2 rounded-full ${timeLeft <= 5 ? 'bg-red-500 animate-pulse' : 'bg-green-500'}`} />
+              <span className={`text-sm font-mono ${timeLeft <= 5 ? 'text-red-400' : 'text-muted-foreground'}`}>
+                {timeLeft}s
+              </span>
+            </div>
+          </div>
+          
+          <div className="flex items-center justify-between bg-input/30 rounded-xl px-6 py-4">
+            <span className="font-mono text-3xl font-bold tracking-[0.3em] text-foreground">
+              {liveCode}
+            </span>
+            <Button
+              variant="ghost"
+              size="icon"
+              className={`h-10 w-10 text-muted-foreground transition-all duration-300 hover:bg-primary/10 hover:text-primary active:scale-95 ${
+                copiedCode === liveCode ? "copy-animation" : ""
+              }`}
+              onClick={() => copyCode(liveCode)}
+            >
+              {copiedCode === liveCode ? (
+                <Check className="h-5 w-5 text-green-500" />
+              ) : (
+                <Copy className="h-5 w-5" />
+              )}
+            </Button>
+          </div>
+          
+          {/* Progress bar */}
+          <div className="mt-4 h-1.5 bg-secondary/50 rounded-full overflow-hidden">
+            <div 
+              className={`h-full transition-all duration-1000 ease-linear rounded-full ${timeLeft <= 5 ? 'bg-red-500' : 'bg-primary'}`}
+              style={{ width: `${(timeLeft / 30) * 100}%` }}
+            />
+          </div>
+        </div>
+      )}
 
       {/* Recent Codes */}
       {recentCodes.length > 0 && (
         <div className="mt-6 rounded-2xl border border-border/50 bg-card/60 backdrop-blur-md">
           <div className="flex items-center justify-between border-b border-border/50 px-6 py-4">
             <h3 className="text-sm font-medium text-muted-foreground">
-              Codigos Recentes
+              Chaves Salvas
             </h3>
           </div>
 
@@ -309,7 +386,7 @@ function TwoFATab({
               >
                 <div>
                   <p className="font-mono text-sm font-medium text-foreground">
-                    {item.code}
+                    {item.secret.slice(0, 8)}...{item.secret.slice(-4)}
                   </p>
                   <p className="text-xs text-muted-foreground">
                     {formatDate(item.timestamp)}
@@ -328,16 +405,16 @@ function TwoFATab({
                     variant="ghost"
                     size="icon"
                     className={`relative h-8 w-8 text-muted-foreground transition-all duration-300 hover:bg-primary/10 hover:text-primary active:scale-95 ${
-                      copiedCode === item.code ? "copy-animation" : ""
+                      copiedCode === item.secret ? "copy-animation" : ""
                     }`}
-                    onClick={() => copyCode(item.code)}
+                    onClick={() => copyCode(item.secret)}
                   >
-                    {copiedCode === item.code ? (
+                    {copiedCode === item.secret ? (
                       <Check className="h-4 w-4 text-green-500" />
                     ) : (
                       <Copy className="h-4 w-4" />
                     )}
-                    {copiedCode === item.code && (
+                    {copiedCode === item.secret && (
                       <span className="ripple-effect absolute inset-0 rounded-lg" />
                     )}
                   </Button>
