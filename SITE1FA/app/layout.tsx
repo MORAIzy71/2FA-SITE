@@ -8,8 +8,8 @@ const _geist = Geist({ subsets: ["latin"] });
 const _geistMono = Geist_Mono({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: 'Gerador 2FA - Autenticação em Dois Fatores',
-  description: 'Gerador de códigos TOTP para autenticação em dois fatores',
+  title: '2FA Bernadu - Utilidades',
+  description: 'Ferramentas utilitarias: Gerador 2FA, Meu IP, Baixar Videos e Senhas',
   generator: 'v0.app',
   icons: {
     icon: '/icon.png',

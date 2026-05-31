@@ -5,9 +5,17 @@ import { TOTP } from "otpauth"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
 import { InvalidCodeDialog } from "@/components/invalid-code-dialog"
-import { Copy, Check, HelpCircle, Shield, SplitSquareHorizontal, Mail, Lock, Key, Sparkles, ExternalLink } from "lucide-react"
+import { 
+  Copy, 
+  Check, 
+  Shield, 
+  Globe, 
+  Download, 
+  Key as KeyIcon,
+  Trash2,
+  Shuffle
+} from "lucide-react"
 
 function generateCode(secret: string): string {
   try {
@@ -24,53 +32,29 @@ function generateCode(secret: string): string {
   }
 }
 
-function getTimeRemaining(): number {
-  return 30 - (Math.floor(Date.now() / 1000) % 30)
+function generateRandomSecret(): string {
+  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567"
+  let secret = ""
+  for (let i = 0; i < 32; i++) {
+    secret += chars.charAt(Math.floor(Math.random() * chars.length))
+  }
+  return secret
 }
 
-type SeparatorMode = "rockstar" | "discord"
+type TabType = "2fa" | "meuip" | "baixarvideos" | "senhas"
 
-interface ParsedAccount {
-  email: string
-  senha: string
-  secret: string
+interface RecentCode {
+  code: string
+  timestamp: Date
 }
 
 export function TOTPGenerator() {
+  const [activeTab, setActiveTab] = useState<TabType>("2fa")
   const [secret, setSecret] = useState("")
-  const [code, setCode] = useState("")
-  const [timeRemaining, setTimeRemaining] = useState(getTimeRemaining())
-  const [copied, setCopied] = useState(false)
+  const [recentCodes, setRecentCodes] = useState<RecentCode[]>([])
+  const [copiedCode, setCopiedCode] = useState<string | null>(null)
   const [showHelpDialog, setShowHelpDialog] = useState(false)
   const copyButtonRef = useRef<HTMLButtonElement>(null)
-
-  // Separador
-  const [separatorMode, setSeparatorMode] = useState<SeparatorMode>("rockstar")
-  const [accountInput, setAccountInput] = useState("")
-  const [parsedAccount, setParsedAccount] = useState<ParsedAccount | null>(null)
-  const [copiedField, setCopiedField] = useState<string | null>(null)
-
-  const updateCode = useCallback(() => {
-    if (secret.trim()) {
-      setCode(generateCode(secret.trim()))
-    }
-  }, [secret])
-
-  useEffect(() => {
-    updateCode()
-  }, [updateCode])
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      const remaining = getTimeRemaining()
-      setTimeRemaining(remaining)
-      if (remaining === 30) {
-        updateCode()
-      }
-    }, 1000)
-
-    return () => clearInterval(interval)
-  }, [updateCode])
 
   const triggerConfetti = () => {
     const runConfetti = () => {
@@ -86,12 +70,12 @@ export function TOTPGenerator() {
         angle?: number
       }) => void }).confetti
 
-      // Explosão do lado esquerdo
+      // Explosao vermelho lado esquerdo
       confettiFunc({
         particleCount: 60,
         spread: 55,
         origin: { x: 0, y: 0.6 },
-        colors: ["#06b6d4", "#8b5cf6", "#3b82f6", "#22d3ee", "#a78bfa"],
+        colors: ["#dc2626", "#ef4444", "#b91c1c", "#f87171", "#991b1b"],
         startVelocity: 45,
         gravity: 0.8,
         scalar: 1.2,
@@ -99,12 +83,12 @@ export function TOTPGenerator() {
         angle: 60,
       })
 
-      // Explosão do lado direito
+      // Explosao vermelho lado direito
       confettiFunc({
         particleCount: 60,
         spread: 55,
         origin: { x: 1, y: 0.6 },
-        colors: ["#06b6d4", "#8b5cf6", "#3b82f6", "#22d3ee", "#a78bfa"],
+        colors: ["#dc2626", "#ef4444", "#b91c1c", "#f87171", "#991b1b"],
         startVelocity: 45,
         gravity: 0.8,
         scalar: 1.2,
@@ -112,45 +96,19 @@ export function TOTPGenerator() {
         angle: 120,
       })
 
-      // Explosão do centro-topo
+      // Explosao do centro
       setTimeout(() => {
         confettiFunc({
           particleCount: 80,
           spread: 100,
           origin: { x: 0.5, y: 0.3 },
-          colors: ["#06b6d4", "#8b5cf6", "#3b82f6", "#f59e0b", "#10b981"],
+          colors: ["#dc2626", "#ef4444", "#fca5a5", "#fee2e2", "#b91c1c"],
           startVelocity: 35,
           gravity: 1,
           scalar: 1,
           ticks: 120,
         })
       }, 100)
-
-      // Segunda onda de confetes
-      setTimeout(() => {
-        confettiFunc({
-          particleCount: 40,
-          spread: 120,
-          origin: { x: 0.2, y: 0.5 },
-          colors: ["#06b6d4", "#a78bfa", "#22d3ee"],
-          startVelocity: 30,
-          gravity: 0.9,
-          scalar: 0.9,
-          ticks: 100,
-          angle: 70,
-        })
-        confettiFunc({
-          particleCount: 40,
-          spread: 120,
-          origin: { x: 0.8, y: 0.5 },
-          colors: ["#06b6d4", "#a78bfa", "#22d3ee"],
-          startVelocity: 30,
-          gravity: 0.9,
-          scalar: 0.9,
-          ticks: 100,
-          angle: 110,
-        })
-      }, 200)
     }
     
     if (!document.querySelector('script[src*="canvas-confetti"]')) {
@@ -163,356 +121,214 @@ export function TOTPGenerator() {
     }
   }
 
-  const copyCode = async () => {
-    if (!code) return
-    await navigator.clipboard.writeText(code)
-    setCopied(true)
-    triggerConfetti()
-    toast.success("Código copiado!", {
-      description: "O código TOTP foi copiado para a área de transferência.",
-    })
-    setTimeout(() => setCopied(false), 2000)
-  }
-
-  const copyField = async (field: string, value: string) => {
-    await navigator.clipboard.writeText(value)
-    setCopiedField(field)
-    triggerConfetti()
+  const generateNewCode = () => {
+    if (!secret.trim()) return
     
-    const fieldLabels: Record<string, string> = {
-      email: "Email",
-      senha: "Senha",
-      secret: separatorMode === "rockstar" ? "2FA" : "Token",
-    }
-    
-    toast.success(`${fieldLabels[field]} copiado!`, {
-      description: `O ${fieldLabels[field].toLowerCase()} foi copiado para a área de transferência.`,
-    })
-    
-    setTimeout(() => setCopiedField(null), 2000)
-  }
-
-  const parseAccount = () => {
-    const parts = accountInput.trim().split(":")
-    if (parts.length >= 3) {
-      setParsedAccount({
-        email: parts[0] || "",
-        senha: parts[1] || "",
-        secret: parts.slice(2).join(":") || "",
+    const code = generateCode(secret.trim())
+    if (code) {
+      const newCode: RecentCode = {
+        code: secret.trim().toUpperCase(),
+        timestamp: new Date()
+      }
+      setRecentCodes(prev => [newCode, ...prev.slice(0, 9)])
+      toast.success("Codigo gerado!", {
+        description: "Chave adicionada aos codigos recentes.",
       })
+    } else {
+      setShowHelpDialog(true)
     }
   }
 
-  const getEmailLink = (email: string): { url: string; name: string } | null => {
-    if (separatorMode !== "discord") return null
-    
-    const emailLower = email.toLowerCase()
-    
-    if (emailLower.includes("@gmx")) {
-      return { url: "https://www.gmx.com/", name: "GMX Mail" }
-    }
-    if (emailLower.includes("@rambler.ru")) {
-      return { url: "https://swiftmail.cc/", name: "Swift Mail" }
-    }
-    // Domínios temporários/descartáveis
-    if (emailLower.includes("@chordavef.com") || 
-        emailLower.includes("@firstmail") ||
-        emailLower.includes("@mailto.plus") ||
-        emailLower.includes("@fexpost.com") ||
-        emailLower.includes("@dpptd.com") ||
-        emailLower.includes("@rfcdrive.com") ||
-        emailLower.includes("@kfrih.com") ||
-        emailLower.includes("@qacmjeq.com")) {
-      return { url: "https://firstmail.ltd/webmail/login/", name: "FirstMail" }
-    }
-    
-    return null
+  const copyCode = async (code: string) => {
+    await navigator.clipboard.writeText(code)
+    setCopiedCode(code)
+    triggerConfetti()
+    toast.success("Codigo copiado!", {
+      description: "O codigo foi copiado para a area de transferencia.",
+    })
+    setTimeout(() => setCopiedCode(null), 2000)
   }
 
-  const progressPercentage = (timeRemaining / 30) * 100
+  const deleteCode = (index: number) => {
+    setRecentCodes(prev => prev.filter((_, i) => i !== index))
+    toast.success("Codigo removido!")
+  }
+
+  const formatDate = (date: Date) => {
+    return `${date.toLocaleDateString('pt-BR')} as ${date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`
+  }
+
+  const tabs = [
+    { id: "2fa" as TabType, label: "2FA", icon: Shield },
+    { id: "meuip" as TabType, label: "Meu IP", icon: Globe },
+    { id: "baixarvideos" as TabType, label: "Baixar Videos", icon: Download },
+    { id: "senhas" as TabType, label: "Senhas", icon: KeyIcon },
+  ]
 
   return (
-    <div className="flex min-h-screen flex-col items-center bg-background px-4 py-12">
-      {/* Animated Background Gradient */}
-      <div className="pointer-events-none fixed inset-0 overflow-hidden">
-        <div className="absolute -left-40 -top-40 h-80 w-80 rounded-full bg-primary/5 blur-3xl" />
-        <div className="absolute -bottom-40 -right-40 h-80 w-80 rounded-full bg-blue-500/5 blur-3xl" />
-      </div>
-
-      {/* Header */}
-      <div className="relative mb-10 text-center">
-        <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-4 py-1.5 text-xs font-medium text-primary">
-          <Sparkles className="h-3.5 w-3.5" />
-          Ferramentas Seguras
-        </div>
-        <h1 className="bg-gradient-to-r from-foreground via-foreground to-muted-foreground bg-clip-text text-4xl font-bold tracking-tight text-transparent">
-          2FA - BERNADU FERRAMENTAS
-        </h1>
-        <p className="mx-auto mt-3 max-w-lg text-sm leading-relaxed text-muted-foreground">
-          Gere códigos 2FA ou separe suas contas facilmente. Para o separador, cole sua conta no formato correto 
-          (ex: email@exemplo.com:senha123:chave2fa) e clique em separar.
-        </p>
-      </div>
-
-      {/* Grid Layout */}
-      <div className="relative z-10 grid w-full max-w-5xl gap-6 md:grid-cols-2">
-        {/* Card 1: Gerador 2FA */}
-        <div className="group relative overflow-hidden rounded-2xl border border-border bg-card/80 p-6 backdrop-blur-sm transition-all duration-500 hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5">
-          {/* Glow effect on hover */}
-          <div className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-500 group-hover:opacity-100">
-            <div className="absolute -right-20 -top-20 h-40 w-40 rounded-full bg-primary/10 blur-3xl" />
-          </div>
-
-          <div className="relative mb-6 text-center">
-            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 ring-1 ring-primary/20 transition-transform duration-300 group-hover:scale-110">
-              <Shield className="h-8 w-8 text-primary transition-transform duration-300 group-hover:rotate-12" />
-            </div>
-            <h2 className="text-xl font-bold tracking-tight text-foreground">Gerador 2FA</h2>
-            <p className="mt-1.5 text-sm text-muted-foreground">
-              Cole sua chave secreta para gerar o código
-            </p>
-          </div>
-
-          <div className="mb-5">
-            <Input
-              placeholder="Cole a chave secreta TOTP aqui..."
-              value={secret}
-              onChange={(e) => setSecret(e.target.value)}
-              className="h-12 rounded-xl border-border bg-background/80 text-center font-mono text-sm tracking-wider transition-all duration-300 placeholder:text-muted-foreground focus:border-primary/50 focus:ring-2 focus:ring-primary/20"
-            />
-          </div>
-
-          {code && (
-            <div className="mb-5 overflow-hidden rounded-xl border border-border bg-background/80 p-5 transition-all duration-300 hover:border-primary/30">
-              <div className="mb-4">
-                <div className="mb-2 flex items-center justify-between text-xs text-muted-foreground">
-                  <span className="flex items-center gap-1.5">
-                    <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-green-500" />
-                    Expira em
-                  </span>
-                  <span className="font-mono font-medium text-foreground">{timeRemaining}s</span>
-                </div>
-                <div className="h-1.5 w-full overflow-hidden rounded-full bg-secondary">
-                  <div
-                    className="h-full rounded-full bg-gradient-to-r from-primary to-primary/70 transition-all duration-1000 ease-linear"
-                    style={{ width: `${progressPercentage}%` }}
-                  />
-                </div>
-              </div>
-
-              <div className="flex items-center justify-between">
-                <span className="font-mono text-4xl font-bold tracking-[0.3em] text-foreground">
-                  {code.slice(0, 3)}<span className="mx-1 text-primary">.</span>{code.slice(3)}
-                </span>
-                <Button
-                  ref={copyButtonRef}
-                  variant="ghost"
-                  size="icon"
-                  className="h-12 w-12 rounded-xl text-muted-foreground transition-all duration-300 hover:scale-110 hover:bg-primary/10 hover:text-primary active:scale-95"
-                  onClick={copyCode}
-                >
-                  {copied ? (
-                    <Check className="h-5 w-5 text-green-500" />
-                  ) : (
-                    <Copy className="h-5 w-5" />
-                  )}
-                </Button>
-              </div>
-            </div>
-          )}
-
-          {!code && secret.trim().length > 0 && (
-            <div className="mb-5 rounded-xl border border-destructive/30 bg-destructive/5 p-4 text-center transition-all duration-300">
-              <p className="text-sm text-destructive">
-                Chave inválida. Verifique se está correta.
-              </p>
-            </div>
-          )}
-
-          <button
-            onClick={() => setShowHelpDialog(true)}
-            className="group/btn mx-auto flex items-center gap-2 rounded-full border border-primary/30 bg-primary/5 px-5 py-2.5 text-sm font-medium text-primary transition-all duration-300 hover:border-primary/50 hover:bg-primary/10 hover:shadow-md hover:shadow-primary/10 active:scale-95"
-          >
-            <HelpCircle className="h-4 w-4 transition-transform duration-300 group-hover/btn:rotate-12" />
-            Código Inválido?
-          </button>
+    <div className="min-h-screen bg-background grid-background">
+      <div className="flex flex-col items-center px-4 py-12">
+        {/* Header Icon */}
+        <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-xl bg-primary/20">
+          <KeyIcon className="h-7 w-7 text-primary" />
         </div>
 
-        {/* Card 2: Separador de Conta */}
-        <div className="group relative overflow-hidden rounded-2xl border border-border bg-card/80 p-6 backdrop-blur-sm transition-all duration-500 hover:border-blue-500/30 hover:shadow-lg hover:shadow-blue-500/5">
-          {/* Glow effect on hover */}
-          <div className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-500 group-hover:opacity-100">
-            <div className="absolute -left-20 -top-20 h-40 w-40 rounded-full bg-blue-500/10 blur-3xl" />
-          </div>
+        {/* Title */}
+        <h1 className="mb-8 text-2xl font-bold text-foreground">Utilidades</h1>
 
-          <div className="relative mb-6 text-center">
-            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500/20 to-blue-500/5 ring-1 ring-blue-500/20 transition-transform duration-300 group-hover:scale-110">
-              <SplitSquareHorizontal className="h-8 w-8 text-blue-500 transition-transform duration-300 group-hover:-rotate-12" />
+        {/* Tab Navigation */}
+        <div className="mb-6 flex items-center gap-1 rounded-full bg-card/80 p-1.5 ring-1 ring-border backdrop-blur-sm">
+          {tabs.map((tab) => {
+            const Icon = tab.icon
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`flex items-center gap-2 rounded-full px-4 py-2.5 text-sm font-medium transition-all duration-300 ${
+                  activeTab === tab.id
+                    ? "bg-primary text-primary-foreground shadow-md"
+                    : "text-muted-foreground hover:bg-secondary/50 hover:text-foreground"
+                }`}
+              >
+                <Icon className="h-4 w-4" />
+                {tab.label}
+              </button>
+            )
+          })}
+        </div>
+
+        {/* Subtitle Badge */}
+        <div className="mb-10 inline-flex items-center gap-2 rounded-full border border-border bg-card/50 px-4 py-1.5 text-xs text-muted-foreground backdrop-blur-sm">
+          <Shield className="h-3.5 w-3.5" />
+          Gere codigos de autenticacao de dois fatores
+        </div>
+
+        {/* Main Content */}
+        {activeTab === "2fa" && (
+          <div className="w-full max-w-xl">
+            {/* 2FA Icon */}
+            <div className="mb-4 flex justify-center">
+              <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 ring-1 ring-primary/20">
+                <Shield className="h-8 w-8 text-primary" />
+              </div>
             </div>
-            <h2 className="text-xl font-bold tracking-tight text-foreground">Separador de Conta</h2>
-            <p className="mt-1.5 text-sm text-muted-foreground">
-              Selecione o tipo e cole a conta para separar
+
+            {/* Title */}
+            <h2 className="mb-2 text-center text-2xl font-bold text-foreground">
+              2FA Bernadu
+            </h2>
+            <p className="mb-8 text-center text-sm text-muted-foreground">
+              Gere codigos de autenticacao de dois fatores
             </p>
-          </div>
 
-          {/* Mode Selector */}
-          <div className="mb-5 flex rounded-xl bg-background/80 p-1.5 ring-1 ring-border">
-            <button
-              onClick={() => setSeparatorMode("rockstar")}
-              className={`flex-1 rounded-lg py-3 text-sm font-medium transition-all duration-300 ${
-                separatorMode === "rockstar"
-                  ? "bg-gradient-to-r from-primary to-primary/80 text-primary-foreground shadow-md"
-                  : "text-muted-foreground hover:bg-secondary/50 hover:text-foreground"
-              }`}
-            >
-              Rockstar
-            </button>
-            <button
-              onClick={() => setSeparatorMode("discord")}
-              className={`flex-1 rounded-lg py-3 text-sm font-medium transition-all duration-300 ${
-                separatorMode === "discord"
-                  ? "bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-md"
-                  : "text-muted-foreground hover:bg-secondary/50 hover:text-foreground"
-              }`}
-            >
-              Conta Discord
-            </button>
-          </div>
+            {/* Secret Key Input Card */}
+            <div className="mb-6 rounded-2xl border border-border bg-card/80 p-6 backdrop-blur-sm">
+              <div className="mb-4 flex items-center gap-2 text-sm text-muted-foreground">
+                <KeyIcon className="h-4 w-4" />
+                Chave secreta
+              </div>
+              
+              <div className="flex gap-3">
+                <Input
+                  placeholder="Cole a chave secreta aqui..."
+                  value={secret}
+                  onChange={(e) => setSecret(e.target.value)}
+                  className="h-12 flex-1 rounded-xl border-border bg-input font-mono text-sm tracking-wider placeholder:text-muted-foreground focus:border-primary/50 focus:ring-2 focus:ring-primary/20"
+                />
+                <Button
+                  onClick={generateNewCode}
+                  className="h-12 rounded-xl bg-primary px-6 font-medium text-primary-foreground shadow-lg shadow-primary/20 transition-all duration-300 hover:bg-primary/90 hover:shadow-xl hover:shadow-primary/30 active:scale-[0.98]"
+                >
+                  Gerar
+                </Button>
+              </div>
+            </div>
 
-          {/* Tutorial */}
-          <div className="mb-5 rounded-xl border border-border bg-muted/30 p-4 transition-all duration-300 hover:bg-muted/50">
-            <p className="text-xs leading-relaxed text-muted-foreground">
-              <span className="font-semibold text-foreground">Como usar:</span>{" "}
-              {separatorMode === "rockstar" 
-                ? "Cole no formato email:senha:2fa e clique em separar."
-                : "Cole no formato email:senha:token e clique em separar."}
-            </p>
-          </div>
-
-          {/* Input */}
-          <div className="mb-5">
-            <Textarea
-              placeholder={
-                separatorMode === "rockstar"
-                  ? "email@exemplo.com:senha123:CHAVE2FA"
-                  : "email@exemplo.com:senha123:TOKEN123"
-              }
-              value={accountInput}
-              onChange={(e) => setAccountInput(e.target.value)}
-              className="min-h-[90px] resize-none rounded-xl border-border bg-background/80 font-mono text-sm transition-all duration-300 placeholder:text-muted-foreground focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20"
-            />
-          </div>
-
-          <Button
-            onClick={parseAccount}
-            disabled={!accountInput.trim()}
-            className="h-12 w-full rounded-xl bg-gradient-to-r from-blue-500 to-blue-600 font-medium text-white shadow-lg shadow-blue-500/20 transition-all duration-300 hover:from-blue-600 hover:to-blue-700 hover:shadow-xl hover:shadow-blue-500/30 active:scale-[0.98] disabled:opacity-50"
-          >
-            Separar Conta
-          </Button>
-
-          {/* Parsed Result */}
-          {parsedAccount && (
-            <div className="mt-5 space-y-3 rounded-xl border border-border bg-background/80 p-4">
-              {/* Email */}
-              <div className="flex items-center justify-between rounded-xl bg-card/80 p-3.5 ring-1 ring-border transition-all duration-300 hover:ring-blue-500/30">
-                <div className="flex items-center gap-3 min-w-0 flex-1">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500/20 to-blue-500/5 ring-1 ring-blue-500/20">
-                    <Mail className="h-5 w-5 text-blue-500" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">EMAIL</p>
-                    <p className="font-mono text-sm text-foreground truncate">{parsedAccount.email}</p>
-                  </div>
-                </div>
+            {/* Recent Codes */}
+            <div className="rounded-2xl border border-border bg-card/80 backdrop-blur-sm">
+              <div className="flex items-center justify-between border-b border-border px-6 py-4">
+                <h3 className="text-sm font-medium text-muted-foreground">
+                  Codigos Recentes
+                </h3>
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-10 w-10 shrink-0 rounded-xl transition-all duration-300 hover:scale-110 hover:bg-blue-500/10 hover:text-blue-500 active:scale-95"
-                  onClick={() => copyField("email", parsedAccount.email)}
+                  className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                  onClick={() => {
+                    const newSecret = generateRandomSecret()
+                    setSecret(newSecret)
+                  }}
                 >
-                  {copiedField === "email" ? (
-                    <Check className="h-4 w-4 text-green-500" />
-                  ) : (
-                    <Copy className="h-4 w-4 text-muted-foreground" />
-                  )}
+                  <Shuffle className="h-4 w-4" />
                 </Button>
               </div>
 
-              {/* Senha */}
-              <div className="flex items-center justify-between rounded-xl bg-card/80 p-3.5 ring-1 ring-border transition-all duration-300 hover:ring-red-500/30">
-                <div className="flex items-center gap-3 min-w-0 flex-1">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-red-500/20 to-red-500/5 ring-1 ring-red-500/20">
-                    <Lock className="h-5 w-5 text-red-500" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">SENHA</p>
-                    <p className="font-mono text-sm text-foreground truncate">{parsedAccount.senha}</p>
-                  </div>
+              {recentCodes.length === 0 ? (
+                <div className="px-6 py-8 text-center text-sm text-muted-foreground">
+                  Nenhum codigo gerado ainda
                 </div>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-10 w-10 shrink-0 rounded-xl transition-all duration-300 hover:scale-110 hover:bg-red-500/10 hover:text-red-500 active:scale-95"
-                  onClick={() => copyField("senha", parsedAccount.senha)}
-                >
-                  {copiedField === "senha" ? (
-                    <Check className="h-4 w-4 text-green-500" />
-                  ) : (
-                    <Copy className="h-4 w-4 text-muted-foreground" />
-                  )}
-                </Button>
-              </div>
-
-              {/* 2FA/Token */}
-              <div className="flex items-center justify-between rounded-xl bg-card/80 p-3.5 ring-1 ring-border transition-all duration-300 hover:ring-primary/30">
-                <div className="flex items-center gap-3 min-w-0 flex-1">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 ring-1 ring-primary/20">
-                    <Key className="h-5 w-5 text-primary" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
-                      {separatorMode === "rockstar" ? "2FA" : "TOKEN"}
-                    </p>
-                    <p className="font-mono text-sm text-foreground truncate">{parsedAccount.secret}</p>
-                  </div>
+              ) : (
+                <div className="divide-y divide-border">
+                  {recentCodes.map((item, index) => (
+                    <div
+                      key={index}
+                      className="flex items-center justify-between px-6 py-4 transition-colors hover:bg-secondary/30"
+                    >
+                      <div>
+                        <p className="font-mono text-sm font-medium text-foreground">
+                          {item.code}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {formatDate(item.timestamp)}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-muted-foreground transition-all duration-300 hover:bg-destructive/10 hover:text-destructive active:scale-95"
+                          onClick={() => deleteCode(index)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          ref={index === 0 ? copyButtonRef : undefined}
+                          variant="ghost"
+                          size="icon"
+                          className={`relative h-8 w-8 text-muted-foreground transition-all duration-300 hover:bg-primary/10 hover:text-primary active:scale-95 ${
+                            copiedCode === item.code ? "copy-animation" : ""
+                          }`}
+                          onClick={() => copyCode(item.code)}
+                        >
+                          {copiedCode === item.code ? (
+                            <Check className="h-4 w-4 text-green-500" />
+                          ) : (
+                            <Copy className="h-4 w-4" />
+                          )}
+                          {copiedCode === item.code && (
+                            <span className="ripple-effect absolute inset-0 rounded-lg" />
+                          )}
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-10 w-10 shrink-0 rounded-xl transition-all duration-300 hover:scale-110 hover:bg-primary/10 hover:text-primary active:scale-95"
-                  onClick={() => copyField("secret", parsedAccount.secret)}
-                >
-                  {copiedField === "secret" ? (
-                    <Check className="h-4 w-4 text-green-500" />
-                  ) : (
-                    <Copy className="h-4 w-4 text-muted-foreground" />
-                  )}
-                </Button>
-              </div>
-
-              {/* Link para Webmail */}
-              {getEmailLink(parsedAccount.email) && (
-                <a
-                  href={getEmailLink(parsedAccount.email)?.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-green-500/20 to-emerald-500/20 p-3.5 ring-1 ring-green-500/30 text-green-400 font-medium text-sm transition-all duration-300 hover:from-green-500/30 hover:to-emerald-500/30 hover:ring-green-500/50 hover:scale-[1.02] active:scale-[0.98]"
-                >
-                  <ExternalLink className="h-4 w-4" />
-                  Acessar {getEmailLink(parsedAccount.email)?.name}
-                </a>
               )}
             </div>
-          )}
-        </div>
-      </div>
+          </div>
+        )}
 
-      {/* Footer */}
-      <div className="relative z-10 mt-10 text-center">
-        <p className="text-xs text-muted-foreground">
-          Feito com segurança em mente
-        </p>
+        {activeTab === "meuip" && (
+          <MeuIPTab />
+        )}
+
+        {activeTab === "baixarvideos" && (
+          <BaixarVideosTab />
+        )}
+
+        {activeTab === "senhas" && (
+          <SenhasTab triggerConfetti={triggerConfetti} />
+        )}
       </div>
 
       {/* Help Dialog */}
@@ -520,6 +336,243 @@ export function TOTPGenerator() {
         open={showHelpDialog}
         onOpenChange={setShowHelpDialog}
       />
+    </div>
+  )
+}
+
+// Meu IP Tab Component
+function MeuIPTab() {
+  const [ip, setIp] = useState<string>("")
+  const [loading, setLoading] = useState(true)
+  const [copied, setCopied] = useState(false)
+
+  useEffect(() => {
+    fetch("https://api.ipify.org?format=json")
+      .then(res => res.json())
+      .then(data => {
+        setIp(data.ip)
+        setLoading(false)
+      })
+      .catch(() => {
+        setIp("Erro ao obter IP")
+        setLoading(false)
+      })
+  }, [])
+
+  const copyIP = async () => {
+    if (!ip || ip === "Erro ao obter IP") return
+    await navigator.clipboard.writeText(ip)
+    setCopied(true)
+    toast.success("IP copiado!")
+    setTimeout(() => setCopied(false), 2000)
+  }
+
+  return (
+    <div className="w-full max-w-xl">
+      <div className="mb-4 flex justify-center">
+        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 ring-1 ring-primary/20">
+          <Globe className="h-8 w-8 text-primary" />
+        </div>
+      </div>
+
+      <h2 className="mb-2 text-center text-2xl font-bold text-foreground">
+        Meu IP
+      </h2>
+      <p className="mb-8 text-center text-sm text-muted-foreground">
+        Veja seu endereco IP publico
+      </p>
+
+      <div className="rounded-2xl border border-border bg-card/80 p-6 backdrop-blur-sm">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-xs text-muted-foreground mb-1">Seu IP Publico</p>
+            <p className="font-mono text-2xl font-bold text-foreground">
+              {loading ? "Carregando..." : ip}
+            </p>
+          </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-12 w-12 rounded-xl text-muted-foreground transition-all duration-300 hover:bg-primary/10 hover:text-primary active:scale-95"
+            onClick={copyIP}
+            disabled={loading}
+          >
+            {copied ? (
+              <Check className="h-5 w-5 text-green-500" />
+            ) : (
+              <Copy className="h-5 w-5" />
+            )}
+          </Button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// Baixar Videos Tab Component
+function BaixarVideosTab() {
+  const [url, setUrl] = useState("")
+
+  return (
+    <div className="w-full max-w-xl">
+      <div className="mb-4 flex justify-center">
+        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 ring-1 ring-primary/20">
+          <Download className="h-8 w-8 text-primary" />
+        </div>
+      </div>
+
+      <h2 className="mb-2 text-center text-2xl font-bold text-foreground">
+        Baixar Videos
+      </h2>
+      <p className="mb-8 text-center text-sm text-muted-foreground">
+        Cole o link do video para baixar
+      </p>
+
+      <div className="rounded-2xl border border-border bg-card/80 p-6 backdrop-blur-sm">
+        <div className="flex gap-3">
+          <Input
+            placeholder="Cole o link do video aqui..."
+            value={url}
+            onChange={(e) => setUrl(e.target.value)}
+            className="h-12 flex-1 rounded-xl border-border bg-input font-mono text-sm placeholder:text-muted-foreground focus:border-primary/50 focus:ring-2 focus:ring-primary/20"
+          />
+          <Button
+            onClick={() => {
+              if (url) {
+                window.open(`https://www.y2mate.com/youtube/${encodeURIComponent(url)}`, '_blank')
+              }
+            }}
+            disabled={!url}
+            className="h-12 rounded-xl bg-primary px-6 font-medium text-primary-foreground shadow-lg shadow-primary/20 transition-all duration-300 hover:bg-primary/90 hover:shadow-xl hover:shadow-primary/30 active:scale-[0.98] disabled:opacity-50"
+          >
+            Baixar
+          </Button>
+        </div>
+        <p className="mt-4 text-center text-xs text-muted-foreground">
+          Suporta YouTube, Instagram, TikTok e mais
+        </p>
+      </div>
+    </div>
+  )
+}
+
+// Senhas Tab Component
+function SenhasTab({ triggerConfetti }: { triggerConfetti: () => void }) {
+  const [password, setPassword] = useState("")
+  const [length, setLength] = useState(16)
+  const [includeNumbers, setIncludeNumbers] = useState(true)
+  const [includeSymbols, setIncludeSymbols] = useState(true)
+  const [copied, setCopied] = useState(false)
+
+  const generatePassword = useCallback(() => {
+    let chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+    if (includeNumbers) chars += "0123456789"
+    if (includeSymbols) chars += "!@#$%^&*()_+-=[]{}|;:,.<>?"
+    
+    let result = ""
+    for (let i = 0; i < length; i++) {
+      result += chars.charAt(Math.floor(Math.random() * chars.length))
+    }
+    setPassword(result)
+  }, [length, includeNumbers, includeSymbols])
+
+  useEffect(() => {
+    generatePassword()
+  }, [generatePassword])
+
+  const copyPassword = async () => {
+    if (!password) return
+    await navigator.clipboard.writeText(password)
+    setCopied(true)
+    triggerConfetti()
+    toast.success("Senha copiada!")
+    setTimeout(() => setCopied(false), 2000)
+  }
+
+  return (
+    <div className="w-full max-w-xl">
+      <div className="mb-4 flex justify-center">
+        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 ring-1 ring-primary/20">
+          <KeyIcon className="h-8 w-8 text-primary" />
+        </div>
+      </div>
+
+      <h2 className="mb-2 text-center text-2xl font-bold text-foreground">
+        Gerador de Senhas
+      </h2>
+      <p className="mb-8 text-center text-sm text-muted-foreground">
+        Gere senhas seguras e aleatorias
+      </p>
+
+      <div className="rounded-2xl border border-border bg-card/80 p-6 backdrop-blur-sm">
+        {/* Password Display */}
+        <div className="mb-6 flex items-center gap-3 rounded-xl bg-input p-4">
+          <p className="flex-1 font-mono text-lg font-medium text-foreground break-all">
+            {password}
+          </p>
+          <Button
+            variant="ghost"
+            size="icon"
+            className={`h-10 w-10 shrink-0 rounded-xl text-muted-foreground transition-all duration-300 hover:bg-primary/10 hover:text-primary active:scale-95 ${
+              copied ? "copy-animation" : ""
+            }`}
+            onClick={copyPassword}
+          >
+            {copied ? (
+              <Check className="h-5 w-5 text-green-500" />
+            ) : (
+              <Copy className="h-5 w-5" />
+            )}
+          </Button>
+        </div>
+
+        {/* Length Slider */}
+        <div className="mb-4">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-sm text-muted-foreground">Tamanho</span>
+            <span className="text-sm font-medium text-foreground">{length}</span>
+          </div>
+          <input
+            type="range"
+            min="8"
+            max="32"
+            value={length}
+            onChange={(e) => setLength(Number(e.target.value))}
+            className="w-full h-2 bg-secondary rounded-lg appearance-none cursor-pointer accent-primary"
+          />
+        </div>
+
+        {/* Options */}
+        <div className="mb-6 flex flex-wrap gap-4">
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={includeNumbers}
+              onChange={(e) => setIncludeNumbers(e.target.checked)}
+              className="h-4 w-4 rounded border-border text-primary focus:ring-primary/20 accent-primary"
+            />
+            <span className="text-sm text-foreground">Numeros</span>
+          </label>
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={includeSymbols}
+              onChange={(e) => setIncludeSymbols(e.target.checked)}
+              className="h-4 w-4 rounded border-border text-primary focus:ring-primary/20 accent-primary"
+            />
+            <span className="text-sm text-foreground">Simbolos</span>
+          </label>
+        </div>
+
+        {/* Generate Button */}
+        <Button
+          onClick={generatePassword}
+          className="h-12 w-full rounded-xl bg-primary font-medium text-primary-foreground shadow-lg shadow-primary/20 transition-all duration-300 hover:bg-primary/90 hover:shadow-xl hover:shadow-primary/30 active:scale-[0.98]"
+        >
+          <Shuffle className="mr-2 h-4 w-4" />
+          Gerar Nova Senha
+        </Button>
+      </div>
     </div>
   )
 }
