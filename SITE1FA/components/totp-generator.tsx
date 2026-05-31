@@ -681,6 +681,25 @@ function SeparadorTab({
 function BaixarVideosTab() {
   const [url, setUrl] = useState("")
   const [platform, setPlatform] = useState<"youtube" | "tiktok">("youtube")
+  const [isLoading, setIsLoading] = useState(false)
+
+  // Detecta automaticamente a plataforma pelo link
+  const detectPlatform = (inputUrl: string) => {
+    const lowerUrl = inputUrl.toLowerCase()
+    if (lowerUrl.includes("youtube.com") || lowerUrl.includes("youtu.be")) {
+      setPlatform("youtube")
+    } else if (lowerUrl.includes("tiktok.com") || lowerUrl.includes("vm.tiktok")) {
+      setPlatform("tiktok")
+    }
+  }
+
+  const handleUrlChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newUrl = e.target.value
+    setUrl(newUrl)
+    if (newUrl.length > 10) {
+      detectPlatform(newUrl)
+    }
+  }
 
   const downloadVideo = () => {
     if (!url.trim()) {
@@ -688,16 +707,55 @@ function BaixarVideosTab() {
       return
     }
 
+    setIsLoading(true)
+
+    // Serviços que funcionam em iOS, Android e PC
     let downloadUrl = ""
     
     if (platform === "youtube") {
-      downloadUrl = `https://www.y2mate.com/youtube/${encodeURIComponent(url)}`
+      // Cobalt é um dos melhores para todas as plataformas
+      downloadUrl = `https://cobalt.tools/?url=${encodeURIComponent(url.trim())}`
     } else {
-      downloadUrl = `https://ssstik.io/pt`
+      // SnapTik funciona bem em mobile e desktop
+      downloadUrl = `https://snaptik.app/pt`
     }
 
-    window.open(downloadUrl, '_blank')
-    toast.success("Abrindo downloader...")
+    // Abre em nova aba
+    const newWindow = window.open(downloadUrl, '_blank')
+    
+    if (newWindow) {
+      toast.success("Abrindo downloader...", {
+        description: "Cole o link no site se necessario"
+      })
+    } else {
+      // Se popup foi bloqueado, copia o link
+      navigator.clipboard.writeText(downloadUrl)
+      toast.info("Popup bloqueado", {
+        description: "Link copiado! Cole no navegador."
+      })
+    }
+
+    setIsLoading(false)
+  }
+
+  const copyUrlToClipboard = () => {
+    if (!url.trim()) return
+    navigator.clipboard.writeText(url)
+    toast.success("Link copiado!")
+  }
+
+  // Links diretos para os downloaders (caso o botão principal não funcione)
+  const downloaderLinks = {
+    youtube: [
+      { name: "Cobalt", url: "https://cobalt.tools" },
+      { name: "SaveFrom", url: "https://pt.savefrom.net" },
+      { name: "Y2Mate", url: "https://www.y2mate.com/pt809" },
+    ],
+    tiktok: [
+      { name: "SnapTik", url: "https://snaptik.app/pt" },
+      { name: "SSSTik", url: "https://ssstik.io/pt" },
+      { name: "TikMate", url: "https://tikmate.online" },
+    ]
   }
 
   return (
@@ -711,7 +769,7 @@ function BaixarVideosTab() {
           <div>
             <h3 className="text-lg font-semibold text-foreground">Baixar Videos</h3>
             <p className="text-sm text-muted-foreground">
-              Baixe videos do YouTube e TikTok.
+              Funciona em iOS, Android e PC
             </p>
           </div>
         </div>
@@ -720,46 +778,95 @@ function BaixarVideosTab() {
         <div className="mb-4 flex gap-2">
           <button
             onClick={() => setPlatform("youtube")}
-            className={`flex-1 rounded-xl px-4 py-3 text-sm font-medium transition-all duration-300 ${
+            className={`flex-1 rounded-xl px-4 py-3 text-sm font-medium transition-all duration-300 flex items-center justify-center gap-2 ${
               platform === "youtube"
                 ? "bg-primary text-primary-foreground shadow-lg shadow-primary/30"
                 : "bg-secondary/50 text-muted-foreground hover:bg-secondary/70"
             }`}
           >
+            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+            </svg>
             YouTube
           </button>
           <button
             onClick={() => setPlatform("tiktok")}
-            className={`flex-1 rounded-xl px-4 py-3 text-sm font-medium transition-all duration-300 ${
+            className={`flex-1 rounded-xl px-4 py-3 text-sm font-medium transition-all duration-300 flex items-center justify-center gap-2 ${
               platform === "tiktok"
                 ? "bg-primary text-primary-foreground shadow-lg shadow-primary/30"
                 : "bg-secondary/50 text-muted-foreground hover:bg-secondary/70"
             }`}
           >
+            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.15 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07z"/>
+            </svg>
             TikTok
           </button>
         </div>
 
-        <Input
-          placeholder={`Cole o link do ${platform === "youtube" ? "YouTube" : "TikTok"} aqui...`}
-          value={url}
-          onChange={(e) => setUrl(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && downloadVideo()}
-          className="mb-4 h-12 rounded-xl border-border/50 bg-input/50 font-mono text-sm placeholder:text-muted-foreground/60 focus:border-primary/50 focus:ring-2 focus:ring-primary/20"
-        />
+        <div className="relative mb-4">
+          <Input
+            placeholder={`Cole o link do ${platform === "youtube" ? "YouTube" : "TikTok"} aqui...`}
+            value={url}
+            onChange={handleUrlChange}
+            onKeyDown={(e) => e.key === "Enter" && downloadVideo()}
+            className="h-12 pr-12 rounded-xl border-border/50 bg-input/50 font-mono text-sm placeholder:text-muted-foreground/60 focus:border-primary/50 focus:ring-2 focus:ring-primary/20"
+          />
+          {url && (
+            <button
+              onClick={copyUrlToClipboard}
+              className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
+            >
+              <Copy className="w-4 h-4" />
+            </button>
+          )}
+        </div>
 
         <Button
           onClick={downloadVideo}
-          disabled={!url.trim()}
+          disabled={!url.trim() || isLoading}
           className="w-full h-11 rounded-xl bg-primary font-medium text-primary-foreground shadow-lg shadow-primary/20 transition-all duration-300 hover:bg-primary/90 hover:shadow-xl hover:shadow-primary/30 active:scale-[0.98] disabled:opacity-50 disabled:shadow-none"
         >
-          <Download className="mr-2 h-4 w-4" />
-          Baixar Video
+          {isLoading ? (
+            <span className="flex items-center gap-2">
+              <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              Abrindo...
+            </span>
+          ) : (
+            <>
+              <Download className="mr-2 h-4 w-4" />
+              Baixar Video
+            </>
+          )}
         </Button>
 
-        <p className="mt-4 text-center text-xs text-muted-foreground">
-          Sera redirecionado para o site de download
-        </p>
+        {/* Alternative Download Links */}
+        <div className="mt-5 pt-5 border-t border-border/30">
+          <p className="text-xs text-muted-foreground mb-3 text-center">
+            Se o botao nao funcionar, use um dos sites abaixo:
+          </p>
+          <div className="flex flex-wrap gap-2 justify-center">
+            {downloaderLinks[platform].map((link) => (
+              <a
+                key={link.name}
+                href={link.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-3 py-1.5 text-xs font-medium rounded-lg bg-secondary/50 text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
+              >
+                {link.name}
+              </a>
+            ))}
+          </div>
+        </div>
+
+        {/* Instructions */}
+        <div className="mt-4 p-3 rounded-xl bg-secondary/30 border border-border/30">
+          <p className="text-xs text-muted-foreground text-center">
+            <span className="font-medium text-foreground">Dica:</span> Copie o link do video, 
+            cole acima e clique em Baixar. O site de download abrira automaticamente.
+          </p>
+        </div>
       </div>
     </div>
   )
