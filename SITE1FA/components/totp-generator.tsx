@@ -48,6 +48,7 @@ interface SeparatedAccount {
   original: string
   email: string
   password: string
+  extra: string // Token para Discord, 2FA para Rockstar
   timestamp: Date
 }
 
@@ -457,35 +458,25 @@ function SeparadorTab({
       return
     }
 
-    // Tenta extrair email e senha do texto
-    // Formatos comuns: "email:senha", "email|senha", "email senha"
     const text = inputText.trim()
-    let email = ""
-    let password = ""
-
-    // Tenta diferentes separadores
-    const separators = [":", "|", " ", "\t", "\n"]
-    for (const sep of separators) {
-      if (text.includes(sep)) {
-        const parts = text.split(sep).filter(p => p.trim())
-        if (parts.length >= 2) {
-          // Procura por algo que parece email
-          const emailPart = parts.find(p => p.includes("@"))
-          if (emailPart) {
-            email = emailPart.trim()
-            password = parts.find(p => p !== emailPart)?.trim() || parts[1].trim()
-          } else {
-            email = parts[0].trim()
-            password = parts[1].trim()
-          }
-          break
-        }
-      }
+    
+    // Discord: EMAIL:SENHA:TOKEN
+    // Rockstar: EMAIL:SENHA:2FA
+    const parts = text.split(":").filter(p => p.trim())
+    
+    if (parts.length < 3) {
+      toast.error(accountType === "discord" 
+        ? "Formato incorreto. Use: EMAIL:SENHA:TOKEN" 
+        : "Formato incorreto. Use: EMAIL:SENHA:2FA")
+      return
     }
 
-    if (!email || !password) {
-      // Se nao conseguiu separar, usa o texto inteiro como "original"
-      toast.error("Formato nao reconhecido. Use email:senha ou email|senha")
+    const email = parts[0].trim()
+    const password = parts[1].trim()
+    const extra = parts.slice(2).join(":").trim() // Pega tudo depois da senha (token pode ter :)
+
+    if (!email || !password || !extra) {
+      toast.error("Todos os campos sao obrigatorios!")
       return
     }
 
@@ -494,6 +485,7 @@ function SeparadorTab({
       original: text,
       email,
       password,
+      extra,
       timestamp: new Date()
     }
 
@@ -514,7 +506,9 @@ function SeparadorTab({
           <div>
             <h3 className="text-lg font-semibold text-foreground">Separador de Contas</h3>
             <p className="text-sm text-muted-foreground">
-              Cole a conta para separar email e senha.
+              {accountType === "discord" 
+                ? "Formato: EMAIL:SENHA:TOKEN" 
+                : "Formato: EMAIL:SENHA:2FA"}
             </p>
           </div>
         </div>
@@ -544,7 +538,9 @@ function SeparadorTab({
         </div>
 
         <Textarea
-          placeholder="Cole aqui: email:senha ou email|senha"
+          placeholder={accountType === "discord" 
+            ? "Cole aqui: EMAIL:SENHA:TOKEN" 
+            : "Cole aqui: EMAIL:SENHA:2FA"}
           value={inputText}
           onChange={(e) => setInputText(e.target.value)}
           className="mb-4 min-h-[100px] rounded-xl border-border/50 bg-input/50 font-mono text-sm placeholder:text-muted-foreground/60 focus:border-primary/50 focus:ring-2 focus:ring-primary/20 resize-none"
@@ -567,26 +563,30 @@ function SeparadorTab({
             <h3 className="text-sm font-medium text-muted-foreground">
               Contas Separadas
             </h3>
-            <span className="text-xs text-muted-foreground/60">
+            <span className="text-xs text-muted-foreground">
               {separatedAccounts.length} conta(s)
             </span>
           </div>
 
-          <div className="divide-y divide-border/50 max-h-[400px] overflow-y-auto">
+          <div className="divide-y divide-border/50">
             {separatedAccounts.map((account, index) => (
               <div
                 key={index}
                 className="group px-6 py-4 transition-colors hover:bg-secondary/20"
               >
-                <div className="flex items-center justify-between mb-2">
+                {/* Header with type and delete */}
+                <div className="flex items-center justify-between mb-3">
                   <span className={`text-xs font-medium px-2 py-1 rounded-full ${
-                    account.type === "rockstar" 
-                      ? "bg-orange-500/20 text-orange-400" 
-                      : "bg-indigo-500/20 text-indigo-400"
+                    account.type === "discord" 
+                      ? "bg-indigo-500/20 text-indigo-400" 
+                      : "bg-orange-500/20 text-orange-400"
                   }`}>
-                    {account.type === "rockstar" ? "Rockstar" : "Discord"}
+                    {account.type === "discord" ? "Discord" : "Rockstar"}
                   </span>
-                  <div className="flex items-center gap-1 opacity-60 group-hover:opacity-100 transition-opacity">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-muted-foreground">
+                      {formatDate(account.timestamp)}
+                    </span>
                     <Button
                       variant="ghost"
                       size="icon"
@@ -597,17 +597,19 @@ function SeparadorTab({
                     </Button>
                   </div>
                 </div>
-                
+
+                {/* Fields */}
                 <div className="space-y-2">
+                  {/* Email */}
                   <div className="flex items-center justify-between bg-input/30 rounded-lg px-3 py-2">
-                    <div>
-                      <p className="text-xs text-muted-foreground mb-0.5">Email</p>
-                      <p className="font-mono text-sm text-foreground">{account.email}</p>
+                    <div className="flex-1 min-w-0">
+                      <span className="text-xs text-muted-foreground block">Email</span>
+                      <p className="font-mono text-sm text-foreground truncate">{account.email}</p>
                     </div>
                     <Button
                       variant="ghost"
                       size="icon"
-                      className={`h-7 w-7 text-muted-foreground transition-all duration-300 hover:bg-primary/10 hover:text-primary active:scale-95 ${
+                      className={`h-7 w-7 shrink-0 ml-2 text-muted-foreground transition-all duration-300 hover:bg-primary/10 hover:text-primary active:scale-95 ${
                         copiedCode === account.email ? "copy-animation" : ""
                       }`}
                       onClick={() => copyCode(account.email)}
@@ -619,16 +621,17 @@ function SeparadorTab({
                       )}
                     </Button>
                   </div>
-                  
+
+                  {/* Password */}
                   <div className="flex items-center justify-between bg-input/30 rounded-lg px-3 py-2">
-                    <div>
-                      <p className="text-xs text-muted-foreground mb-0.5">Senha</p>
-                      <p className="font-mono text-sm text-foreground">{account.password}</p>
+                    <div className="flex-1 min-w-0">
+                      <span className="text-xs text-muted-foreground block">Senha</span>
+                      <p className="font-mono text-sm text-foreground truncate">{account.password}</p>
                     </div>
                     <Button
                       variant="ghost"
                       size="icon"
-                      className={`h-7 w-7 text-muted-foreground transition-all duration-300 hover:bg-primary/10 hover:text-primary active:scale-95 ${
+                      className={`h-7 w-7 shrink-0 ml-2 text-muted-foreground transition-all duration-300 hover:bg-primary/10 hover:text-primary active:scale-95 ${
                         copiedCode === account.password ? "copy-animation" : ""
                       }`}
                       onClick={() => copyCode(account.password)}
@@ -640,11 +643,31 @@ function SeparadorTab({
                       )}
                     </Button>
                   </div>
-                </div>
 
-                <p className="text-xs text-muted-foreground/60 mt-2">
-                  {formatDate(account.timestamp)}
-                </p>
+                  {/* Extra (Token/2FA) */}
+                  <div className="flex items-center justify-between bg-input/30 rounded-lg px-3 py-2">
+                    <div className="flex-1 min-w-0">
+                      <span className="text-xs text-muted-foreground block">
+                        {account.type === "discord" ? "Token" : "2FA"}
+                      </span>
+                      <p className="font-mono text-sm text-foreground truncate">{account.extra}</p>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className={`h-7 w-7 shrink-0 ml-2 text-muted-foreground transition-all duration-300 hover:bg-primary/10 hover:text-primary active:scale-95 ${
+                        copiedCode === account.extra ? "copy-animation" : ""
+                      }`}
+                      onClick={() => copyCode(account.extra)}
+                    >
+                      {copiedCode === account.extra ? (
+                        <Check className="h-3.5 w-3.5 text-green-500" />
+                      ) : (
+                        <Copy className="h-3.5 w-3.5" />
+                      )}
+                    </Button>
+                  </div>
+                </div>
               </div>
             ))}
           </div>
