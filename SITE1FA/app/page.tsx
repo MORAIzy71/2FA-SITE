@@ -2,13 +2,13 @@ import { Lock } from "lucide-react"
 import { TOTPGenerator } from "@/components/totp-generator"
 import { InstructionsPanel } from "@/components/instructions-panel"
 import { Snowfall } from "@/components/christmas/snowfall"
-import { ChristmasLights, SantaParade, TitleStars } from "@/components/christmas/decorations"
+import { ChristmasLights, GiftRain, TitleStars } from "@/components/christmas/decorations"
 
 export default function Home() {
   return (
     <div className="xmas-backdrop relative min-h-dvh overflow-x-hidden">
       <Snowfall />
-      <SantaParade />
+      <GiftRain />
       <ChristmasLights />
 
       <main className="relative z-10 mx-auto flex w-full max-w-7xl flex-col gap-10 px-4 pb-16 pt-20 sm:px-6 sm:pt-24">

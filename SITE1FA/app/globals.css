@@ -154,28 +154,28 @@
   }
 }
 
-/* Papais Noéis caindo */
-.santa-fall {
-  animation-name: santa-fall;
+/* Presentes caindo */
+.gift-fall {
+  animation-name: gift-fall;
   animation-timing-function: linear;
   animation-iteration-count: infinite;
   will-change: transform;
 }
 
-@keyframes santa-fall {
+@keyframes gift-fall {
   from {
-    transform: translateY(-12vh) rotate(-10deg);
+    transform: translateY(-12vh) rotate(-25deg);
   }
   to {
-    transform: translateY(112vh) rotate(10deg);
+    transform: translateY(112vh) rotate(25deg);
   }
 }
 
-.santa-sway {
-  animation: santa-sway 3.5s ease-in-out infinite alternate;
+.gift-sway {
+  animation: gift-sway 3.5s ease-in-out infinite alternate;
 }
 
-@keyframes santa-sway {
+@keyframes gift-sway {
   from {
     transform: translateX(-18px);
   }

@@ -26,33 +26,35 @@ export function ChristmasLights() {
   )
 }
 
-const FALLING_SANTAS = [
-  { left: "6%", delay: "0s", duration: "22s", size: "1.4rem", opacity: 0.55 },
-  { left: "22%", delay: "9s", duration: "26s", size: "1rem", opacity: 0.4 },
-  { left: "48%", delay: "15s", duration: "24s", size: "1.2rem", opacity: 0.35 },
-  { left: "71%", delay: "4s", duration: "28s", size: "1.1rem", opacity: 0.45 },
-  { left: "90%", delay: "12s", duration: "21s", size: "1.5rem", opacity: 0.5 },
+const FALLING_GIFTS = [
+  { left: "6%", delay: "0s", duration: "22s", size: "1.4rem", opacity: 0.6 },
+  { left: "16%", delay: "7s", duration: "19s", size: "1.1rem", opacity: 0.45 },
+  { left: "30%", delay: "11s", duration: "26s", size: "1rem", opacity: 0.4 },
+  { left: "48%", delay: "15s", duration: "24s", size: "1.25rem", opacity: 0.4 },
+  { left: "62%", delay: "2s", duration: "20s", size: "1.15rem", opacity: 0.5 },
+  { left: "76%", delay: "5s", duration: "28s", size: "1.1rem", opacity: 0.45 },
+  { left: "90%", delay: "12s", duration: "21s", size: "1.5rem", opacity: 0.55 },
 ]
 
-export function SantaParade() {
+export function GiftRain() {
   return (
     <div
       aria-hidden="true"
       className="motion-decor pointer-events-none fixed inset-0 z-0 overflow-hidden"
     >
-      {FALLING_SANTAS.map((santa) => (
+      {FALLING_GIFTS.map((gift) => (
         <span
-          key={santa.left}
-          className="santa-fall absolute top-0"
+          key={gift.left}
+          className="gift-fall absolute top-0"
           style={{
-            left: santa.left,
-            animationDelay: santa.delay,
-            animationDuration: santa.duration,
-            fontSize: santa.size,
-            opacity: santa.opacity,
+            left: gift.left,
+            animationDelay: gift.delay,
+            animationDuration: gift.duration,
+            fontSize: gift.size,
+            opacity: gift.opacity,
           }}
         >
-          <span className="santa-sway inline-block">🎅</span>
+          <span className="gift-sway inline-block">🎁</span>
         </span>
       ))}
       <div className="sleigh-ride absolute left-0 top-[14%] whitespace-nowrap text-2xl opacity-80 sm:text-3xl">
