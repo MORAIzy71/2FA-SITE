@@ -4,79 +4,33 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  --background: oklch(0.98 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.55 0.22 25);
-  --primary-foreground: oklch(0.98 0 0);
-  --secondary: oklch(0.96 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.96 0 0);
-  --muted-foreground: oklch(0.5 0 0);
-  --accent: oklch(0.55 0.22 25);
-  --accent-foreground: oklch(0.98 0 0);
-  --destructive: oklch(0.55 0.22 25);
-  --destructive-foreground: oklch(0.98 0 0);
-  --border: oklch(0.9 0 0);
-  --input: oklch(0.95 0 0);
-  --ring: oklch(0.55 0.22 25);
-  --chart-1: oklch(0.55 0.22 25);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
-  --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.55 0.22 25);
-  --sidebar-primary-foreground: oklch(0.98 0 0);
-  --sidebar-accent: oklch(0.96 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.9 0 0);
-  --sidebar-ring: oklch(0.55 0.22 25);
-}
-
-.dark {
-  --background: oklch(0.06 0.01 260);
-  --foreground: oklch(0.95 0 0);
-  --card: oklch(0.10 0.01 260);
-  --card-foreground: oklch(0.95 0 0);
-  --popover: oklch(0.08 0.01 260);
-  --popover-foreground: oklch(0.95 0 0);
-  --primary: oklch(0.58 0.22 25);
-  --primary-foreground: oklch(0.98 0 0);
-  --secondary: oklch(0.14 0.01 260);
-  --secondary-foreground: oklch(0.95 0 0);
-  --muted: oklch(0.16 0.01 260);
-  --muted-foreground: oklch(0.50 0 0);
-  --accent: oklch(0.58 0.22 25);
-  --accent-foreground: oklch(0.98 0 0);
-  --destructive: oklch(0.50 0.20 25);
-  --destructive-foreground: oklch(0.95 0 0);
-  --border: oklch(0.18 0.01 260);
-  --input: oklch(0.12 0.01 260);
-  --ring: oklch(0.58 0.22 25);
-  --chart-1: oklch(0.58 0.22 25);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.58 0.22 25);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(0.269 0 0);
-  --sidebar-ring: oklch(0.439 0 0);
+  --background: #0b0809;
+  --foreground: #f7f3ee;
+  --card: #151012;
+  --card-foreground: #f7f3ee;
+  --popover: #151012;
+  --popover-foreground: #f7f3ee;
+  --primary: #d42a2a;
+  --primary-foreground: #f7f3ee;
+  --secondary: #1f181a;
+  --secondary-foreground: #f7f3ee;
+  --muted: #1f181a;
+  --muted-foreground: #a8a0a0;
+  --accent: #e8b84a;
+  --accent-foreground: #0b0809;
+  --destructive: #f05252;
+  --destructive-foreground: #f7f3ee;
+  --border: #2a2124;
+  --input: #2a2124;
+  --ring: #e8b84a;
+  --gold: #e8b84a;
+  --snow: #f7f3ee;
+  --radius: 1rem;
 }
 
 @theme inline {
-  --font-sans: 'Geist', 'Geist Fallback';
-  --font-mono: 'Geist Mono', 'Geist Mono Fallback';
+  --font-sans: var(--font-outfit), 'Outfit', system-ui, sans-serif;
+  --font-display: var(--font-xmas), 'Mountains of Christmas', serif;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -96,23 +50,12 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
-  --color-chart-1: var(--chart-1);
-  --color-chart-2: var(--chart-2);
-  --color-chart-3: var(--chart-3);
-  --color-chart-4: var(--chart-4);
-  --color-chart-5: var(--chart-5);
+  --color-gold: var(--gold);
+  --color-snow: var(--snow);
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
-  --color-sidebar: var(--sidebar);
-  --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar-primary: var(--sidebar-primary);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-  --color-sidebar-border: var(--sidebar-border);
-  --color-sidebar-ring: var(--sidebar-ring);
 }
 
 @layer base {
@@ -124,101 +67,264 @@
   }
 }
 
-/* Grid Background Pattern - Enhanced */
-.grid-background {
+/* Brilho vermelho/dourado discreto no fundo */
+.xmas-backdrop {
+  background:
+    radial-gradient(ellipse 70% 45% at 50% -5%, color-mix(in srgb, var(--primary) 22%, transparent), transparent 70%),
+    radial-gradient(ellipse 40% 30% at 85% 100%, color-mix(in srgb, var(--gold) 8%, transparent), transparent 70%),
+    var(--background);
+}
+
+/* Cards com neve acumulada no topo */
+.xmas-card {
   position: relative;
-  background-color: var(--background);
+  transition: border-color 0.4s ease, box-shadow 0.4s ease, transform 0.4s ease;
 }
 
-.grid-background::before {
+.xmas-card:hover {
+  border-color: color-mix(in srgb, var(--gold) 45%, transparent);
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--gold) 12%, transparent),
+    0 20px 60px -20px color-mix(in srgb, var(--gold) 30%, transparent);
+}
+
+.snow-cap::before {
   content: '';
   position: absolute;
-  inset: 0;
-  background-image: 
-    linear-gradient(rgba(220, 38, 38, 0.06) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(220, 38, 38, 0.06) 1px, transparent 1px);
-  background-size: 50px 50px;
+  left: 1.25rem;
+  right: 1.25rem;
+  top: -1px;
+  height: 0.9rem;
+  border-radius: 0 0 1rem 1rem;
+  background:
+    radial-gradient(circle at 10px 0, var(--snow) 9px, transparent 10px) 0 4px / 26px 14px repeat-x,
+    linear-gradient(var(--snow), var(--snow)) 0 0 / 100% 5px no-repeat;
+  opacity: 0.92;
   pointer-events: none;
 }
 
-.grid-background::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(ellipse 80% 50% at 50% 0%, rgba(220, 38, 38, 0.08), transparent);
-  pointer-events: none;
+/* Luzes de Natal */
+.bulb {
+  display: block;
+  width: 0.55rem;
+  height: 0.8rem;
+  border-radius: 50% 50% 45% 45%;
+  animation: bulb-blink 2.8s ease-in-out infinite;
 }
 
-/* Copy Button Animation */
-@keyframes copy-pulse {
-  0% {
-    transform: scale(1);
-    box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.5);
-  }
-  50% {
-    transform: scale(1.1);
-    box-shadow: 0 0 0 12px rgba(220, 38, 38, 0);
-  }
-  100% {
-    transform: scale(1);
-    box-shadow: 0 0 0 0 rgba(220, 38, 38, 0);
-  }
+.bulb-red {
+  background: var(--primary);
+  --glow: var(--primary);
 }
 
-.copy-animation {
-  animation: copy-pulse 0.5s ease-out;
+.bulb-gold {
+  background: var(--gold);
+  --glow: var(--gold);
 }
 
-/* Success Ripple Effect */
-@keyframes ripple {
-  0% {
-    transform: scale(0);
-    opacity: 1;
-  }
-  100% {
-    transform: scale(4);
-    opacity: 0;
-  }
+.bulb-white {
+  background: var(--snow);
+  --glow: var(--snow);
 }
 
-.ripple-effect::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  background: radial-gradient(circle, rgba(34, 197, 94, 0.4) 0%, transparent 70%);
-  animation: ripple 0.6s ease-out;
-}
-
-/* Glow Effect for Primary Elements */
-@keyframes glow {
+@keyframes bulb-blink {
   0%, 100% {
-    box-shadow: 0 0 20px rgba(220, 38, 38, 0.2);
+    opacity: 1;
+    box-shadow: 0 0 10px 2px color-mix(in srgb, var(--glow) 70%, transparent);
   }
   50% {
-    box-shadow: 0 0 30px rgba(220, 38, 38, 0.4);
+    opacity: 0.35;
+    box-shadow: 0 0 0 0 transparent;
   }
 }
 
-.glow-effect {
-  animation: glow 2s ease-in-out infinite;
+/* Estrelas ao redor do título */
+.twinkle {
+  animation: twinkle 2.4s ease-in-out infinite;
 }
 
-/* Smooth scrollbar */
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+@keyframes twinkle {
+  0%, 100% {
+    opacity: 0.25;
+    transform: scale(0.7) rotate(0deg);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.1) rotate(20deg);
+  }
 }
 
-::-webkit-scrollbar-track {
-  background: transparent;
+/* Papais Noéis caindo */
+.santa-fall {
+  animation-name: santa-fall;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+  will-change: transform;
 }
 
-::-webkit-scrollbar-thumb {
-  background: rgba(220, 38, 38, 0.3);
-  border-radius: 4px;
+@keyframes santa-fall {
+  from {
+    transform: translateY(-12vh) rotate(-10deg);
+  }
+  to {
+    transform: translateY(112vh) rotate(10deg);
+  }
 }
 
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(220, 38, 38, 0.5);
+.santa-sway {
+  animation: santa-sway 3.5s ease-in-out infinite alternate;
+}
+
+@keyframes santa-sway {
+  from {
+    transform: translateX(-18px);
+  }
+  to {
+    transform: translateX(18px);
+  }
+}
+
+/* Trenó atravessando a tela de vez em quando */
+.sleigh-ride {
+  animation: sleigh-ride 32s linear infinite;
+  animation-delay: 4s;
+  transform: translateX(110vw);
+  will-change: transform;
+}
+
+@keyframes sleigh-ride {
+  0% {
+    transform: translateX(110vw) translateY(0);
+  }
+  15% {
+    transform: translateX(40vw) translateY(-14px);
+  }
+  30% {
+    transform: translateX(-40vw) translateY(6px);
+  }
+  100% {
+    transform: translateX(-40vw) translateY(6px);
+  }
+}
+
+/* Botão gerar com brilho natalino */
+.xmas-btn {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--gold) 70%, transparent);
+  animation: xmas-glow 3s ease-in-out infinite;
+}
+
+.xmas-btn::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(110deg, transparent 30%, color-mix(in srgb, var(--gold) 45%, transparent) 50%, transparent 70%);
+  transform: translateX(-120%);
+  transition: transform 0.7s ease;
+  pointer-events: none;
+}
+
+.xmas-btn:hover::after {
+  transform: translateX(120%);
+}
+
+@keyframes xmas-glow {
+  0%, 100% {
+    box-shadow: 0 0 18px -4px color-mix(in srgb, var(--primary) 70%, transparent);
+  }
+  50% {
+    box-shadow: 0 0 30px -2px color-mix(in srgb, var(--gold) 45%, transparent);
+  }
+}
+
+/* Dígitos entrando */
+.digit-in {
+  animation: digit-in 0.45s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+@keyframes digit-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.9);
+    filter: blur(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+    filter: none;
+  }
+}
+
+/* Presente ao gerar código */
+.gift-pop {
+  animation: gift-pop 1.4s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+
+@keyframes gift-pop {
+  0% {
+    opacity: 0;
+    transform: translateY(20px) scale(0.3) rotate(0deg);
+  }
+  25% {
+    opacity: 1;
+    transform: translateY(-8px) scale(1.25) rotate(-12deg);
+  }
+  45% {
+    transform: translateY(0) scale(1) rotate(10deg);
+  }
+  60% {
+    transform: rotate(-6deg);
+  }
+  80% {
+    opacity: 1;
+    transform: rotate(0deg);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-24px) scale(0.8);
+  }
+}
+
+/* Entrada da página */
+.rise-in {
+  animation: rise-in 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Acordeão "Código não funciona?" */
+details > summary {
+  list-style: none;
+}
+
+details > summary::-webkit-details-marker {
+  display: none;
+}
+
+details[open] .chevron {
+  transform: rotate(180deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .motion-decor {
+    display: none;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
