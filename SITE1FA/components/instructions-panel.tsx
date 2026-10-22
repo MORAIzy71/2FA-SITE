@@ -1,19 +1,19 @@
 import { ChevronDown } from "lucide-react"
 
 const STEPS = [
-  "Copie a chave secreta recebida na sua compra.",
-  "Cole a chave no campo do gerador.",
-  "Clique em gerar e copie seu código de 6 números.",
+  "Copie a chave secreta enviada na sua compra.",
+  "Cole a chave no gerador 2FA.",
+  "Pronto! Seu código será gerado e copiado automaticamente.",
 ]
 
 export function InstructionsPanel() {
   return (
     <aside
       aria-labelledby="instructions-title"
-      className="xmas-card snow-cap rounded-3xl border border-border bg-card/85 p-6 pt-8 backdrop-blur-md sm:p-8 sm:pt-10"
+      className="xmas-card snow-cap w-full rounded-3xl border border-border bg-card/85 p-6 pt-8 backdrop-blur-md"
     >
-      <h2 id="instructions-title" className="text-xl font-semibold text-foreground">
-        {"🎅 Como gerar seu código?"}
+      <h2 id="instructions-title" className="text-lg font-semibold text-foreground">
+        {"🎅 Como usar o gerador?"}
       </h2>
 
       <ol className="mt-6 flex flex-col gap-4">

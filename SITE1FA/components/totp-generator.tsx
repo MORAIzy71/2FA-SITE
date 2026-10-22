@@ -3,24 +3,21 @@
 import { useEffect, useRef, useState } from "react"
 import { TOTP } from "otpauth"
 import confetti from "canvas-confetti"
-import { toast } from "sonner"
-import { Check, KeyRound, X } from "lucide-react"
+import { Check, Copy, KeyRound, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 
 const PERIOD_MS = 30_000
+const MIN_SECRET_LENGTH = 16
+
+type CopyStatus = "idle" | "copied" | "blocked"
 
 function cleanSecret(value: string) {
   return value.replace(/[\s-]+/g, "").replace(/=+$/, "").toUpperCase()
 }
 
-function validateSecret(secret: string): string | null {
-  if (!secret) return "Cole sua chave secreta primeiro."
-  if (!/^[A-Z2-7]+$/.test(secret)) {
-    return "Chave inválida: ela só pode ter letras de A a Z e números de 2 a 7."
-  }
-  if (secret.length < 16) return "Chave muito curta. Confira se você copiou ela inteira."
-  return null
+function hasInvalidCharacters(secret: string) {
+  return !/^[A-Z2-7]*$/.test(secret)
 }
 
 function generateCode(secret: string): string | null {
@@ -31,18 +28,27 @@ function generateCode(secret: string): string | null {
   }
 }
 
+async function writeToClipboard(text: string) {
+  try {
+    await navigator.clipboard.writeText(text)
+    return true
+  } catch {
+    return false
+  }
+}
+
 function celebrateCopy(origin: HTMLElement | null) {
   const rect = origin?.getBoundingClientRect()
   const x = rect ? (rect.left + rect.width / 2) / window.innerWidth : 0.5
-  const y = rect ? (rect.top + rect.height / 2) / window.innerHeight : 0.6
+  const y = rect ? (rect.top + rect.height / 2) / window.innerHeight : 0.5
   const gold = getComputedStyle(document.documentElement).getPropertyValue("--gold").trim()
   const snowflake = confetti.shapeFromText({ text: "❄", scalar: 1.4 })
   const base = { origin: { x, y }, disableForReducedMotion: true, zIndex: 60 }
 
   confetti({
     ...base,
-    particleCount: 26,
-    spread: 100,
+    particleCount: 28,
+    spread: 110,
     startVelocity: 32,
     gravity: 0.9,
     ticks: 90,
@@ -52,7 +58,7 @@ function celebrateCopy(origin: HTMLElement | null) {
   })
   confetti({
     ...base,
-    particleCount: 14,
+    particleCount: 12,
     spread: 140,
     startVelocity: 22,
     gravity: 0.5,
@@ -80,9 +86,9 @@ export function TOTPGenerator() {
   const [code, setCode] = useState("")
   const [remainingMs, setRemainingMs] = useState(PERIOD_MS)
   const [error, setError] = useState<string | null>(null)
-  const [copied, setCopied] = useState(false)
+  const [copyStatus, setCopyStatus] = useState<CopyStatus>("idle")
   const [giftKey, setGiftKey] = useState(0)
-  const copyButtonRef = useRef<HTMLButtonElement>(null)
+  const codeRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     if (!secret) return
@@ -92,71 +98,90 @@ export function TOTPGenerator() {
       setRemainingMs(PERIOD_MS - (Date.now() % PERIOD_MS))
     }
     update()
-    const interval = setInterval(update, 200)
+    const interval = setInterval(update, 250)
     return () => clearInterval(interval)
   }, [secret])
 
-  const handleGenerate = (event: React.FormEvent) => {
-    event.preventDefault()
-    const cleaned = cleanSecret(input)
-    const validationError = validateSecret(cleaned)
-    if (validationError) {
-      setError(validationError)
+  const copyCode = async (value: string) => {
+    const ok = await writeToClipboard(value)
+    setCopyStatus(ok ? "copied" : "blocked")
+    if (ok) celebrateCopy(codeRef.current)
+  }
+
+  const resetResult = () => {
+    setSecret(null)
+    setCode("")
+    setCopyStatus("idle")
+  }
+
+  const handleChange = (value: string) => {
+    setInput(value)
+    const cleaned = cleanSecret(value)
+
+    if (!cleaned) {
+      setError(null)
+      resetResult()
       return
     }
-    if (!generateCode(cleaned)) {
+    if (hasInvalidCharacters(cleaned)) {
+      setError("Chave inválida: use apenas letras de A a Z e números de 2 a 7.")
+      resetResult()
+      return
+    }
+    if (cleaned.length < MIN_SECRET_LENGTH) {
+      setError(null)
+      resetResult()
+      return
+    }
+
+    const generated = generateCode(cleaned)
+    if (!generated) {
       setError("Não foi possível ler essa chave. Verifique se ela está correta.")
+      resetResult()
       return
     }
+
     setError(null)
+    if (cleaned === secret) return
+
     setSecret(cleaned)
+    setCode(generated)
+    setRemainingMs(PERIOD_MS - (Date.now() % PERIOD_MS))
     setGiftKey((key) => key + 1)
+    void copyCode(generated)
   }
 
   const handleClear = () => {
     setInput("")
-    setSecret(null)
-    setCode("")
     setError(null)
+    resetResult()
   }
 
-  const handleCopy = async () => {
-    if (!code) return
-    try {
-      await navigator.clipboard.writeText(code)
-    } catch {
-      toast.error("Não foi possível copiar. Selecione o código e copie manualmente.")
-      return
-    }
-    celebrateCopy(copyButtonRef.current)
-    setCopied(true)
-    toast.success("🎄 Código copiado com sucesso!")
-    setTimeout(() => setCopied(false), 1600)
-  }
-
+  const cleanedLength = cleanSecret(input).length
+  const isIncomplete = !error && !code && cleanedLength > 0 && cleanedLength < MIN_SECRET_LENGTH
   const seconds = Math.ceil(remainingMs / 1000)
   const isEnding = seconds <= 5
 
   return (
     <section
       aria-labelledby="generator-title"
-      className="xmas-card snow-cap rounded-3xl border border-border bg-card/85 p-6 pt-8 backdrop-blur-md sm:p-8 sm:pt-10"
+      className="xmas-card snow-cap w-full rounded-3xl border border-border bg-card/85 p-5 pt-8 backdrop-blur-md sm:p-7 sm:pt-9"
     >
-      <div className="flex items-center gap-4">
-        <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-gold/40 bg-primary/15 text-gold">
-          <KeyRound className="h-6 w-6" aria-hidden="true" />
+      <div className="flex items-center gap-3">
+        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-gold/40 bg-primary/15 text-gold">
+          <KeyRound className="h-5 w-5" aria-hidden="true" />
         </span>
         <div>
-          <h2 id="generator-title" className="text-xl font-semibold text-foreground">
+          <h2 id="generator-title" className="text-lg font-semibold text-foreground">
             Gerador de Código 2FA
           </h2>
           <p className="text-sm leading-relaxed text-muted-foreground">
-            Cole a chave secreta TOTP recebida na sua compra.
+            Cole sua chave e o código é gerado na hora.
           </p>
         </div>
       </div>
 
-      <form onSubmit={handleGenerate} className="mt-6 flex flex-col gap-3" noValidate>
+      <div className="mt-5 flex flex-col gap-2">
         <label htmlFor="secret" className="text-sm font-medium text-foreground">
           Chave secreta
         </label>
@@ -164,16 +189,14 @@ export function TOTPGenerator() {
           <Input
             id="secret"
             value={input}
-            onChange={(e) => {
-              setInput(e.target.value)
-              if (error) setError(null)
-            }}
-            placeholder="Ex.: JBSWY3DPEHPK3PXP..."
+            onChange={(e) => handleChange(e.target.value)}
+            placeholder="Cole aqui sua chave TOTP..."
             autoComplete="off"
             autoCapitalize="characters"
+            autoFocus
             spellCheck={false}
             aria-invalid={Boolean(error)}
-            aria-describedby={error ? "secret-error" : undefined}
+            aria-describedby="secret-hint"
             className="h-14 rounded-2xl border-border bg-background/70 pr-12 text-base tracking-wider placeholder:tracking-normal placeholder:text-muted-foreground/60 focus-visible:border-gold/60 focus-visible:ring-gold/25"
           />
           {input && (
@@ -187,88 +210,107 @@ export function TOTPGenerator() {
             </button>
           )}
         </div>
-        {error && (
-          <p id="secret-error" role="alert" className="text-sm leading-relaxed text-destructive">
-            {error}
-          </p>
-        )}
-        <Button
-          type="submit"
-          className="xmas-btn mt-1 h-14 rounded-2xl bg-primary text-base font-semibold text-primary-foreground hover:bg-primary/90"
+        <p
+          id="secret-hint"
+          role={error ? "alert" : undefined}
+          className={`min-h-5 text-sm leading-relaxed ${error ? "text-destructive" : "text-muted-foreground"}`}
         >
-          {"🎁 Gerar Código"}
-        </Button>
-      </form>
+          {error ??
+            (isIncomplete
+              ? `A chave parece incompleta (mínimo de ${MIN_SECRET_LENGTH} caracteres).`
+              : "")}
+        </p>
+      </div>
 
-      <div className="relative mt-8 rounded-2xl border border-border bg-background/60 p-5 sm:p-6">
+      <div
+        ref={codeRef}
+        className="relative mt-2 rounded-2xl border border-border bg-background/60 p-4 sm:p-5"
+      >
         {giftKey > 0 && (
           <span
             key={giftKey}
             aria-hidden="true"
-            className="gift-pop pointer-events-none absolute -top-6 right-6 text-4xl"
+            className="gift-pop pointer-events-none absolute -top-6 right-5 text-4xl"
           >
             🎁
           </span>
         )}
 
-        {code ? (
-          <div className="flex flex-col items-center gap-6 sm:flex-row sm:justify-between">
-            <div
-              aria-live="polite"
-              aria-label={`Código atual: ${code}`}
-              className="flex items-center gap-1.5 sm:gap-2"
-            >
-              {code.split("").map((digit, i) => (
-                <span
-                  key={`${code}-${i}`}
-                  className={`digit-in flex h-14 w-11 items-center justify-center rounded-xl border border-border bg-secondary text-3xl font-semibold tabular-nums text-foreground sm:h-16 sm:w-12 sm:text-4xl ${
-                    i === 3 ? "ml-2 sm:ml-3" : ""
-                  }`}
-                  style={{ animationDelay: `${i * 45}ms` }}
-                >
-                  {digit}
-                </span>
-              ))}
-            </div>
+        <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
+          <div
+            aria-live="polite"
+            aria-label={code ? `Código atual: ${code}` : "Nenhum código gerado"}
+            className="flex items-center gap-1 sm:gap-1.5"
+          >
+            {(code || "      ").split("").map((digit, i) => (
+              <span
+                key={code ? `${code}-${i}` : `empty-${i}`}
+                className={`flex h-14 w-10 items-center justify-center rounded-xl border text-3xl font-bold tabular-nums sm:h-16 sm:w-12 sm:text-4xl ${
+                  code
+                    ? "digit-in border-border bg-secondary text-foreground"
+                    : "border-dashed border-border text-muted-foreground/40"
+                } ${i === 3 ? "ml-2 sm:ml-3" : ""}`}
+                style={code ? { animationDelay: `${i * 40}ms` } : undefined}
+              >
+                {code ? digit : "•"}
+              </span>
+            ))}
+          </div>
+          {code && (
             <CountdownRing seconds={seconds} fraction={remainingMs / PERIOD_MS} ending={isEnding} />
-          </div>
-        ) : (
-          <div className="flex flex-col items-center gap-3 py-2 text-center">
-            <div aria-hidden="true" className="flex gap-1.5 sm:gap-2">
-              {Array.from({ length: 6 }, (_, i) => (
-                <span
-                  key={i}
-                  className={`flex h-14 w-11 items-center justify-center rounded-xl border border-dashed border-border text-2xl text-muted-foreground/40 sm:h-16 sm:w-12 ${
-                    i === 3 ? "ml-2 sm:ml-3" : ""
-                  }`}
-                >
-                  •
-                </span>
-              ))}
-            </div>
-            <p className="text-sm leading-relaxed text-muted-foreground">
-              Seu código de 6 números aparecerá aqui.
-            </p>
-          </div>
+          )}
+        </div>
+
+        {!code && (
+          <p className="mt-4 text-center text-sm leading-relaxed text-muted-foreground">
+            Seu código de 6 números aparecerá aqui.
+          </p>
         )}
 
-        <Button
-          ref={copyButtonRef}
-          type="button"
-          variant="outline"
-          onClick={handleCopy}
-          disabled={!code}
-          className="mt-6 h-12 w-full rounded-2xl border-gold/50 bg-transparent text-base font-medium text-gold transition-all hover:bg-gold/10 hover:text-gold active:scale-[0.98] disabled:opacity-40"
-        >
-          {copied ? (
-            <>
-              <Check className="h-5 w-5" aria-hidden="true" />
-              Copiado!
-            </>
-          ) : (
-            "📋 Copiar Código"
-          )}
-        </Button>
+        {code && copyStatus === "copied" && (
+          <p
+            role="status"
+            className="mt-4 flex items-center justify-center gap-2 text-center font-semibold text-gold"
+          >
+            {"✅ Código gerado e copiado!"}
+          </p>
+        )}
+
+        {code && copyStatus === "blocked" && (
+          <p role="status" className="mt-4 text-center text-sm leading-relaxed text-muted-foreground">
+            Seu navegador bloqueou a cópia automática. Toque no botão abaixo.
+          </p>
+        )}
+
+        {code && (
+          <Button
+            type="button"
+            variant={copyStatus === "blocked" ? "default" : "outline"}
+            onClick={() => copyCode(code)}
+            className={`mt-4 h-12 w-full rounded-2xl text-base font-semibold transition-all active:scale-[0.98] ${
+              copyStatus === "blocked"
+                ? "xmas-btn bg-primary text-primary-foreground hover:bg-primary/90"
+                : "border-gold/50 bg-transparent text-gold hover:bg-gold/10 hover:text-gold"
+            }`}
+          >
+            {copyStatus === "blocked" ? (
+              <>
+                <Copy className="h-5 w-5" aria-hidden="true" />
+                Copiar código
+              </>
+            ) : copyStatus === "copied" ? (
+              <>
+                <Check className="h-5 w-5" aria-hidden="true" />
+                Copiar novamente
+              </>
+            ) : (
+              <>
+                <Copy className="h-5 w-5" aria-hidden="true" />
+                Copiar código
+              </>
+            )}
+          </Button>
+        )}
       </div>
     </section>
   )
