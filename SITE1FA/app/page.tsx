@@ -17,7 +17,7 @@ export default function Home() {
             <TitleStars />
             <h1 className="font-display text-5xl font-bold leading-tight text-foreground text-balance sm:text-7xl">
               <span aria-hidden="true">{"🎄 "}</span>
-              BERNADU <span className="text-gold">FERRAMENTAS</span>
+              BERNADU <span className="text-gold">GGMAX</span>
             </h1>
           </div>
           <p className="max-w-md text-lg leading-relaxed text-muted-foreground text-pretty">
