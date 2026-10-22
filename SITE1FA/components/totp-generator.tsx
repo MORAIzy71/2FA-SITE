@@ -236,11 +236,11 @@ export function TOTPGenerator() {
           </span>
         )}
 
-        <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
+        <div className="flex w-full flex-col items-center justify-center gap-4">
           <div
             aria-live="polite"
             aria-label={code ? `Código atual: ${code}` : "Nenhum código gerado"}
-            className="flex items-center gap-1 sm:gap-1.5"
+            className="flex items-center justify-center gap-1 sm:gap-1.5"
           >
             {(code || "      ").split("").map((digit, i) => (
               <span
