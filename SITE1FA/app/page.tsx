@@ -11,7 +11,7 @@ export default function Home() {
       <GiftRain />
       <ChristmasLights />
 
-      <main className="relative z-10 mx-auto flex w-full max-w-7xl flex-col gap-10 px-4 pb-16 pt-20 sm:px-6 sm:pt-24">
+      <main className="relative z-10 mx-auto flex w-full max-w-[1600px] flex-col gap-10 px-4 pb-16 pt-20 sm:px-6 sm:pt-24 xl:px-10">
         <header className="rise-in flex flex-col items-center gap-4 text-center">
           <div className="relative px-4">
             <TitleStars />
@@ -26,15 +26,15 @@ export default function Home() {
         </header>
 
         <div
-          className="rise-in mx-auto grid w-full max-w-lg items-start gap-8 lg:max-w-none lg:grid-cols-[minmax(0,1fr)_320px] lg:gap-16 xl:grid-cols-[minmax(0,1fr)_minmax(0,500px)_minmax(0,1fr)]"
+          className="rise-in relative flex w-full flex-col items-center gap-8"
           style={{ animationDelay: "150ms" }}
         >
-          <div className="w-full min-w-0 lg:mx-auto lg:max-w-[500px] xl:col-start-2">
+          <div className="w-full min-w-0 max-w-[500px]">
             <TOTPGenerator />
           </div>
-          <div className="w-full min-w-0 lg:sticky lg:top-8 xl:col-start-3 xl:max-w-[320px] xl:justify-self-end">
+          <aside className="w-full min-w-0 max-w-[500px] xl:absolute xl:right-0 xl:top-0 xl:w-[300px] 2xl:right-8">
             <InstructionsPanel />
-          </div>
+          </aside>
         </div>
 
         <p className="flex items-center justify-center gap-2 text-center text-sm leading-relaxed text-muted-foreground">
