@@ -12,7 +12,7 @@ const xmas = Mountains_of_Christmas({
 })
 
 export const metadata: Metadata = {
-  title: 'BERNADU FERRAMENTAS - Gerador de Código 2FA',
+  title: 'BERNADU GGMAX - Gerador de Código 2FA',
   description: 'Gere seu código 2FA de forma rápida e segura, direto no seu navegador.',
   generator: 'v0.app',
   icons: {
